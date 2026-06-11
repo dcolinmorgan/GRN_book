@@ -10,16 +10,16 @@ This repository contains data, notebooks, and reproducible demos for each chapte
 |--------|--------|----------|
 | `Beeline/` | [BEELINE](https://github.com/Murali-group/Beeline) | Benchmarking |
 | `BiGSM/` | BiGSM | ML / Deep Learning |
-| `Bootstrap/` | NestBoot | Statistical |
-| `D-Spin/` | D-Spin | Statistical Mechanics |
+| `Bootstrap/` | [NestBoot](https://github.com/dcolinmorgan/pyGS/tree/main/src/bootstrap) | Statistical |
+| `D-Spin/` | [D-Spin](https://github.com/JialongJiang/DSPIN) | Statistical Mechanics |
 | `DeepRIG/` | DeepRIG | ML / Deep Learning |
-| `GeneSPIDER/` | GeneSPIDER | Benchmarking / Simulation |
+| `GeneSPIDER/` | [GeneSPIDER](https://github.com/dcolinmorgan/pyGS/tree/main) | Benchmarking / Simulation |
 | `GLUE/` | GLUE | Multi-omics Integration |
 | `LINGER/` | LINGER | Multi-omics Integration |
 | `LiPLike/` | LiPLike | Likelihood-based |
-| `merlin/` | MERLIN | Network Inference |
+| `merlin/` | MERLIN | Network Inference |d
 | `RegDiffusion/` | RegDiffusion | Diffusion Models |
-| `Scenic+/` | SCENIC+ | Multi-omics (scRNA + scATAC) |
+| `Scenic+/` | [SCENIC+](https://github.com/aertslab/scenicplus) | Multi-omics (scRNA + scATAC) |
 | `scMTNI/` | scMTNI | Multi-omics / Temporal |
 
 ## Getting Started
