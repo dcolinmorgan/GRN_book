@@ -17,7 +17,8 @@ This repository contains data, notebooks, and reproducible demos for each chapte
 | `GLUE/` | GLUE | Multi-omics Integration |
 | `LINGER/` | LINGER | Multi-omics Integration |
 | `LiPLike/` | LiPLike | Likelihood-based |
-| `merlin/` | MERLIN | Network Inference |d
+| `merlin/` | MERLIN | Network Inference |
+| `netZoo/` | [PANDA (netZooPy)](https://github.com/netZoo/netZooPy) | Message Passing |
 | `RegDiffusion/` | RegDiffusion | Diffusion Models |
 | `Scenic+/` | [SCENIC+](https://github.com/aertslab/scenicplus) | Multi-omics (scRNA + scATAC) |
 | `scMTNI/` | scMTNI | Multi-omics / Temporal |
