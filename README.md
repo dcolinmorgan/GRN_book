@@ -8,6 +8,7 @@ This repository contains data, notebooks, and reproducible demos for each chapte
 
 | Folder | Method | Category |
 |--------|--------|----------|
+| `Intro/` | Introduction — dataset landscape & benchmarking pitfalls | Overview / Figures |
 | `Beeline/` | [BEELINE](https://github.com/Murali-group/Beeline) | Benchmarking |
 | `BiGSM/` | BiGSM | ML / Deep Learning |
 | `Bootstrap/` | [NestBoot](https://github.com/dcolinmorgan/pyGS/tree/main/src/bootstrap) | Statistical |
