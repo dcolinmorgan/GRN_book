@@ -40,7 +40,7 @@ MAX_NEG_FOR_CURVE = 200_000
 
 
 def permutation_z(n_pos, n_neg, pos_scores, neg_scores, seed, n_perm=500,
-                  n_pos_fixed=50, neg_per_pos=30, n_reps=25):
+                  n_pos_fixed=50, neg_per_pos=30, n_reps=100):
     """
     DREAM5-style permutation z-score for AUPR at a MATCHED evaluation size.
 
@@ -53,7 +53,9 @@ def permutation_z(n_pos, n_neg, pos_scores, neg_scores, seed, n_perm=500,
     the same. Averaging over n_reps random subsamples smooths sampling noise.
     The z-score then reflects scorer quality at a common resolution rather than
     raw dataset size. (The smallest networks can still drift slightly because
-    their total positive pool is tiny; no AUPR statistic is provably invariant.)
+    their total positive pool is tiny — a finite-population effect that does NOT
+    vanish with more reps or permutations; no AUPR statistic is provably
+    invariant.)
     """
     r = np.random.default_rng(seed)
     n_pos_use = min(n_pos_fixed, n_pos)
@@ -268,13 +270,14 @@ for N in SIZES:
     E_rows[N] = rows
     e_ratio = np.array([r[0] for r in rows])
     e_aupr = np.array([r[2] for r in rows])
+    e_prev = rows[-1][1]  # prevalence at the full edge set = random-AUPR baseline
     axE.semilogx(e_ratio, e_aupr, "-o", color=SIZE_COLORS[N], lw=2.2,
                  markersize=7, label=f"{N} genes")
-    axE.axhline(e_aupr[-1], color=SIZE_COLORS[N], ls="--", lw=1.0, alpha=0.6)
+    axE.axhline(e_prev, color=SIZE_COLORS[N], ls="--", lw=1.3, alpha=0.9)
 
 axE.set_xlabel("Negatives kept per positive (neg:pos)", fontsize=13)
 axE.set_ylabel("Reported AUPR", fontsize=13)
-axE.set_ylim(0, 1)
+axE.set_yscale("log")
 axE.set_title("E. Subsampling inflates a poor AUPR (all sizes)", fontsize=13)
 axE.legend(fontsize=11, loc="upper right")
 axE.grid(True, which="both", alpha=0.3)
