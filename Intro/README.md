@@ -45,6 +45,9 @@ sizes, so scorer *quality* is fixed; only class prevalence changes.
 - **D** — *same scorer, different verdicts:* AUROC stays flat, AUPR collapses,
   and the AUPR-ratio normalization is contrasted (see below)
 - **E** — negative subsampling inflates a poor AUPR at every network size
+- **F** — *why no AUPR normalization works:* AUPR follows a power law in
+  prevalence, AUPR ∝ prevalence^b with b ≈ 0.79 (< 1); a random predictor would
+  have b = 1, so dividing by prevalence can never flatten the trend
 
 ```bash
 python plot_grn_reliability.py   # writes grn_reliability_metrics.png / .pdf + per-panel TSVs
@@ -74,6 +77,15 @@ therefore not a bounded, size-invariant quality metric.
 only prevalence-invariant summary shown, though it is comparatively insensitive
 to imbalance (Panel B). Cross-size comparison of AUPR is only meaningful at
 matched prevalence / negative-sampling ratio (Panel E).
+
+Panel F makes the root cause explicit: for a fixed-quality scorer, AUPR follows
+a power law in prevalence, `log(AUPR) = a + b·log(prevalence)`, with a fitted
+exponent `b ≈ 0.79 < 1`. A random predictor has `b = 1` (AUPR = prevalence) by
+construction. Because the real exponent is below 1, the AUPR-ratio
+`= AUPR / prevalence = 10^a · prevalence^(b−1)` retains a `prevalence^(b−1)` term
+that grows without bound as prevalence shrinks — i.e. it is mathematically
+guaranteed not to be size-invariant. This is the same log-log relationship
+reported in recent GRN-evaluation critiques.
 
 Per-panel data are also written as `grn_reliability_panel*.tsv` for independent
 re-plotting.

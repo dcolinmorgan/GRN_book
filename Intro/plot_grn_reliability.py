@@ -112,7 +112,6 @@ for N in SIZES:
 # ── Plot ──
 fig, axes = plt.subplots(3, 2, figsize=(13, 16))
 axA, axB, axC, axD, axE, axF = axes.ravel()
-axF.axis("off")  # unused slot
 
 # Panel A: prevalence vs size (the imbalance driver) — sweep a fine size range
 size_sweep = np.array([50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000])
@@ -258,6 +257,46 @@ axE.set_title("E. Subsampling inflates a poor AUPR (all sizes)", fontsize=13)
 axE.legend(fontsize=11, loc="upper right")
 axE.grid(True, which="both", alpha=0.3)
 
+# ── Panel F: WHY no AUPR normalization works — the log-log AUPR vs prevalence law ──
+# For a fixed-quality scorer, sweep many network sizes and plot log10(AUPR) against
+# log10(prevalence). The points fall on a line log(AUPR) = a + b*log(prevalence).
+# A random predictor has AUPR = prevalence exactly, i.e. slope b = 1 (grey reference).
+# A real, discriminative scorer has b < 1 (its AUPR decays SUB-linearly in prevalence),
+# so AUPR/prevalence = 10^a * prevalence^(b-1) keeps changing as prevalence shrinks —
+# which is exactly why the AUPR-ratio is not size-invariant. The gap between the fitted
+# slope and 1 is the root cause of every AUPR pathology in panels C–E.
+F_sizes = np.array([50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000])
+f_prev, f_aupr = [], []
+for N in F_sizes:
+    n_pos, n_neg, pos_s, neg_s, prev = make_scored_network(int(N), seed=500 + int(N))
+    _, aupr = metrics_full(n_pos, n_neg, pos_s, neg_s)
+    f_prev.append(prev)
+    f_aupr.append(aupr)
+f_prev = np.array(f_prev)
+f_aupr = np.array(f_aupr)
+
+log_prev = np.log10(f_prev)
+log_aupr = np.log10(f_aupr)
+b, a = np.polyfit(log_prev, log_aupr, 1)   # log_aupr = b*log_prev + a
+
+axF.scatter(f_prev, f_aupr, s=70, color="#C44E52", zorder=5,
+            edgecolors="white", linewidths=1.2, label="AUPR (fixed-quality scorer)")
+# Fitted line
+xx = np.logspace(log_prev.min() - 0.2, log_prev.max() + 0.2, 100)
+axF.plot(xx, 10 ** a * xx ** b, "-", color="#C44E52", lw=2,
+         label=f"fit: AUPR ∝ prevalence$^{{{b:.2f}}}$")
+# Slope-1 reference (random predictor: AUPR = prevalence)
+axF.plot(xx, xx, "--", color="#888888", lw=1.6,
+         label="random: AUPR = prevalence (slope 1)")
+
+axF.set_xscale("log")
+axF.set_yscale("log")
+axF.set_xlabel("Prevalence (true / possible edges)", fontsize=13)
+axF.set_ylabel("AUPR", fontsize=13)
+axF.set_title("F. AUPR tracks prevalence sub-linearly (slope < 1)", fontsize=13)
+axF.legend(fontsize=10, loc="upper left")
+axF.grid(True, which="both", alpha=0.3)
+
 plt.tight_layout()
 plt.savefig("grn_reliability_metrics.png", dpi=150)
 plt.savefig("grn_reliability_metrics.pdf")
@@ -342,3 +381,11 @@ for N in SIZES:
         ["neg_per_pos", "prevalence", "reported_AUPR"],
         [[f"{r[0]:.2f}", f"{r[1]:.6f}", f"{r[2]:.4f}"] for r in E_rows[N]],
     )
+
+# Panel F: AUPR vs prevalence across sizes, plus the fitted log-log slope b
+_write_tsv(
+    "grn_reliability_panelF.tsv",
+    ["n_genes", "prevalence", "AUPR", f"fit_slope_b={b:.4f}"],
+    [[int(N), f"{p:.6f}", f"{ap:.6f}", ""]
+     for N, p, ap in zip(F_sizes, f_prev, f_aupr)],
+)
