@@ -43,44 +43,37 @@ sizes, so scorer *quality* is fixed; only class prevalence changes.
   prevalence-invariant)
 - **C** — PR curves collapse toward each size's prevalence baseline (dashed)
 - **D** — *same scorer, different verdicts:* AUROC stays flat, AUPR collapses,
-  and two normalization attempts are contrasted (see below)
+  and the AUPR-ratio normalization is contrasted (see below)
 - **E** — negative subsampling inflates a poor AUPR at every network size
 
 ```bash
 python plot_grn_reliability.py   # writes grn_reliability_metrics.png / .pdf + per-panel TSVs
 ```
 
-### On the DREAM5-style permutation z-score (Panel D)
+### On AUPR normalization and the DREAM5 significance transform (Panel D)
 
-Raw AUPR shrinks with network size (driven by falling prevalence), and the naive
-**AUPR-ratio** (AUPR / prevalence) *over-corrects* and rises with size, because a
-genuinely discriminative scorer's AUPR decays sub-linearly in prevalence. Neither
-is size-invariant.
+Raw AUPR shrinks with network size (driven by falling prevalence). The common
+**AUPR-ratio** (AUPR / prevalence, i.e. AUPR over the expected-random baseline)
+is meant to divide out that floor, but it *over-corrects* and RISES with size,
+because a genuinely discriminative scorer's AUPR decays sub-linearly in
+prevalence. So it is not size-invariant either.
 
-The more robust option, implemented in `permutation_z()`, is a **DREAM5-style
-permutation z-score**: build an empirical null by shuffling the true/false labels
-many times and recomputing AUPR, then report
+A natural next idea is a **DREAM5-style significance transform** (Marbach et
+al., *Nat Methods* 2012): build an empirical null of AUPR by shuffling the
+true/false labels, then report a permutation z-score or `-log10(p)` of the
+observed AUPR against that null. DREAM5 used p-values (with a stretched-
+exponential tail fit), not z-scores. The catch — confirmed numerically here — is
+that this is a **significance** measure, not an effect size: with thousands to
+millions of edges the null becomes extremely tight, so any non-random scorer
+yields astronomically small p-values (z-scores of 30+, p far below 1e-300).
+These numbers are dominated by sample size, not prediction quality, and are
+therefore not a bounded, size-invariant quality metric.
 
-```
-z = (observed_AUPR − mean(null_AUPR)) / std(null_AUPR)
-```
-
-To make the z-score comparable *across* network sizes, every size is evaluated on
-a **fully matched subsample** (identical positive and negative counts), so both
-the evaluation prevalence and the null resolution are the same. This keeps the
-z-score roughly flat for a fixed-quality scorer.
-
-Caveats (see also Badia-i-Mompel et al., *Nat Rev Genet* 2023, and DREAM
-challenge literature):
-
-- No AUPR-derived statistic is *provably* scale-invariant; the matched-null
-  z-score is an empirical fix, not an algebraic one.
-- Networks too small to supply the matched subsample (here roughly N < 50)
-  skew the z-score downward — their possible-negative pool is too small to
-  resolve the null.
-- More permutations (300 → 2000) barely move the estimate; the null mean/std
-  converge quickly, so instability is a matched-size issue, not a
-  too-few-randomizations issue.
+**Conclusion:** no AUPR-derived scalar (ratio, permutation z-score, or
+`-log10(p)`) gives a bounded, size-invariant quality number. **AUROC** is the
+only prevalence-invariant summary shown, though it is comparatively insensitive
+to imbalance (Panel B). Cross-size comparison of AUPR is only meaningful at
+matched prevalence / negative-sampling ratio (Panel E).
 
 Per-panel data are also written as `grn_reliability_panel*.tsv` for independent
 re-plotting.

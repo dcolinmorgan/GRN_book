@@ -39,40 +39,22 @@ SIZE_COLORS = {50: "#4C72B0", 500: "#DD8452", 5000: "#C44E52"}
 MAX_NEG_FOR_CURVE = 200_000
 
 
-def permutation_z(n_pos, n_neg, pos_scores, neg_scores, seed, n_perm=500,
-                  n_pos_fixed=50, neg_per_pos=30, n_reps=100):
+def aupr_ratio(prev, aupr):
     """
-    DREAM5-style permutation z-score for AUPR at a MATCHED evaluation size.
+    AUPR-ratio = observed AUPR / expected-random AUPR. The expected-random AUPR
+    equals the prevalence (the area under the flat random-baseline PR line), so
+    this is AUPR / prevalence — "how many times better than random."
 
-    A raw permutation z-score grows with the number of edges (a larger sample
-    tightens the null, inflating z for the same effect), so it is not
-    size-invariant on its own. To make the score comparable across networks we
-    evaluate every size on a FULLY matched subsample — identical positive and
-    negative counts (n_pos_fixed and neg_per_pos*n_pos_fixed) for every size, so
-    both the evaluation prevalence and the label-shuffled null resolution are
-    the same. Averaging over n_reps random subsamples smooths sampling noise.
-    The z-score then reflects scorer quality at a common resolution rather than
-    raw dataset size. (The smallest networks can still drift slightly because
-    their total positive pool is tiny — a finite-population effect that does NOT
-    vanish with more reps or permutations; no AUPR statistic is provably
-    invariant.)
+    NOTE: this is shown for illustration only. It is NOT size-invariant: it
+    over-corrects and RISES with network size, because a genuinely
+    discriminative scorer's AUPR decays sub-linearly in prevalence. As Erik
+    Sonnhammer noted and as DREAM5 (Marbach et al., Nat Methods 2012) implies,
+    no AUPR-derived scalar gives a bounded, size-invariant quality number —
+    significance transforms (permutation z-score / -log10(p)) instead grow
+    astronomically with sample size. AUROC is the only prevalence-invariant
+    summary here.
     """
-    r = np.random.default_rng(seed)
-    n_pos_use = min(n_pos_fixed, n_pos)
-    n_neg_use = min(neg_per_pos * n_pos_use, n_neg)
-    zs = []
-    for _ in range(n_reps):
-        pos_k = r.choice(pos_scores, n_pos_use, replace=False)
-        neg_k = r.choice(neg_scores, n_neg_use, replace=False)
-        y = np.concatenate([np.ones(n_pos_use), np.zeros(n_neg_use)])
-        s = np.concatenate([pos_k, neg_k])
-        obs = average_precision_score(y, s)
-        null = np.empty(n_perm)
-        for i in range(n_perm):
-            null[i] = average_precision_score(r.permutation(y), s)
-        zs.append((obs - null.mean()) / null.std())
-    zs = np.array(zs)
-    return zs.mean(), obs, float(zs.std())
+    return aupr / prev
 
 
 def make_scored_network(N, seed):
@@ -122,11 +104,10 @@ for N in SIZES:
     n_pos, n_neg, pos_s, neg_s, prev = make_scored_network(N, seed=100 + N)
     auroc, aupr = metrics_full(n_pos, n_neg, pos_s, neg_s)
     roc_c, pr_c = curves_subsampled(n_pos, n_neg, pos_s, neg_s, prev, seed=200 + N)
-    zscore, _, _ = permutation_z(n_pos, n_neg, pos_s, neg_s, seed=300 + N)
     results[N] = dict(prev=prev, auroc=auroc, aupr=aupr,
-                      aupr_ratio=aupr / prev, aupr_z=zscore, roc=roc_c, pr=pr_c)
+                      aupr_ratio=aupr / prev, roc=roc_c, pr=pr_c)
     print(f"N={N:5d}  prev={prev:.4f}  AUROC={auroc:.3f}  "
-          f"AUPR={aupr:.3f}  AUPR/prev={aupr / prev:.1f}  AUPR-z={zscore:.1f}")
+          f"AUPR={aupr:.3f}  AUPR/prev={aupr / prev:.1f}")
 
 # ── Plot ──
 fig, axes = plt.subplots(3, 2, figsize=(13, 16))
@@ -207,19 +188,20 @@ for ratio in sampling_ratios:
           f"AUPR={aupr_r:.3f}  AUROC={auroc_r:.3f}  AUPR/prev={aupr_ratio_r:.1f}")
 
 # Panel D: SAME SCORER, DIFFERENT VERDICTS. A fixed-quality scorer is evaluated on
-# networks of increasing size; AUROC stays high while AUPR collapses with prevalence.
-# A DREAM5-style permutation z-score (AUPR scored against a label-shuffled null at a
-# MATCHED evaluation size) is far more stable across sizes than AUPR or AUPR/prevalence,
-# though — as no AUPR statistic is provably scale-invariant — mild residual drift remains.
+# networks of increasing size; AUROC (green) stays flat while AUPR (red) collapses with
+# prevalence. The AUPR-ratio (yellow dashed, AUPR / prevalence) is shown as the common
+# "fix" — but it over-corrects and RISES with size, so it is not size-invariant either.
+# No AUPR-derived scalar (ratio, permutation z-score, or -log10(p)) gives a bounded,
+# size-invariant quality number; AUROC is the only prevalence-invariant summary here.
 d_sizes = np.array(SIZES, dtype=float)
 d_auroc_s = np.array([results[N]["auroc"] for N in SIZES])
 d_aupr_s = np.array([results[N]["aupr"] for N in SIZES])
-d_z_s = np.array([results[N]["aupr_z"] for N in SIZES])
+d_ratio_s = np.array([results[N]["aupr_ratio"] for N in SIZES])
 
 l_auroc, = axD.semilogx(d_sizes, d_auroc_s, "-o", color="#55A868", lw=2.2,
-                        markersize=9, label="AUROC")
+                        markersize=9, label="AUROC (prevalence-invariant)")
 l_aupr, = axD.semilogx(d_sizes, d_aupr_s, "-o", color="#C44E52", lw=2.2,
-                       markersize=9, label="AUPR")
+                       markersize=9, label="AUPR (collapses with size)")
 axD.set_xlabel("Network size (genes)", fontsize=13)
 axD.set_ylabel("AUROC / AUPR", fontsize=13)
 axD.set_ylim(0, 1)
@@ -228,23 +210,17 @@ axD.set_xticklabels([str(N) for N in SIZES])
 axD.set_title("D. Same scorer, different verdicts", fontsize=13)
 axD.grid(True, which="both", alpha=0.3)
 
-# Secondary axis (shared): DREAM5-style AUPR permutation z-score (matched-null) and,
-# for illustration, the AUPR-ratio (AUPR / prevalence). Both are "normalized quality"
-# scores that live off the [0,1] scale, so they share one right-hand axis. The z-score
-# is roughly flat across sizes; the AUPR-ratio over-corrects and RISES, showing why it
-# is not a valid size-invariant metric.
-d_ratio_s = np.array([results[N]["aupr"] / results[N]["prev"] for N in SIZES])
+# Secondary axis: AUPR-ratio (AUPR / prevalence), the common normalization attempt.
+# It over-corrects and rises with size — shown to illustrate it is NOT size-invariant.
 axD2 = axD.twinx()
-l_z, = axD2.semilogx(d_sizes, d_z_s, "-^", color="#8172B3", lw=2.2,
-                     markersize=9, label="AUPR z-score (matched-null)")
-l_ratio, = axD2.semilogx(d_sizes, d_ratio_s, "--D", color="#B0A030", lw=1.8,
-                         markersize=7, alpha=0.85,
-                         label="AUPR-ratio (AUPR / prevalence, illustrative)")
-axD2.set_ylabel("AUPR z-score  /  AUPR-ratio", fontsize=12, color="#555555")
-axD2.tick_params(axis="y", labelcolor="#555555")
-axD2.set_ylim(0, max(d_z_s.max(), d_ratio_s.max()) * 1.35)
+l_ratio, = axD2.semilogx(d_sizes, d_ratio_s, "--D", color="#B0A030", lw=2.0,
+                         markersize=8, alpha=0.9,
+                         label="AUPR-ratio (AUPR / prevalence)")
+axD2.set_ylabel("AUPR-ratio (AUPR / prevalence)", fontsize=12, color="#B0A030")
+axD2.tick_params(axis="y", labelcolor="#B0A030")
+axD2.set_ylim(0, d_ratio_s.max() * 1.35)
 
-axD.legend(handles=[l_auroc, l_aupr, l_z, l_ratio], fontsize=10, loc="center left")
+axD.legend(handles=[l_auroc, l_aupr, l_ratio], fontsize=10, loc="center left")
 
 # ── Panel E: negative subsampling inflates a poor AUPR — for ALL three sizes ──
 # Repeat the Panel-D subsampling sweep for each network size (same fixed-quality
@@ -346,10 +322,9 @@ _write_tsv(
 # Panel D: same-scorer verdicts across network sizes (AUROC, AUPR, AUPR-ratio, AUPR z-score)
 _write_tsv(
     "grn_reliability_panelD.tsv",
-    ["n_genes", "prevalence", "AUROC", "AUPR", "AUPR_ratio", "AUPR_zscore"],
+    ["n_genes", "prevalence", "AUROC", "AUPR", "AUPR_ratio"],
     [[N, f"{results[N]['prev']:.6f}", f"{results[N]['auroc']:.4f}",
-      f"{results[N]['aupr']:.4f}", f"{results[N]['aupr'] / results[N]['prev']:.3f}",
-      f"{results[N]['aupr_z']:.2f}"]
+      f"{results[N]['aupr']:.4f}", f"{results[N]['aupr_ratio']:.3f}"]
      for N in SIZES],
 )
 
