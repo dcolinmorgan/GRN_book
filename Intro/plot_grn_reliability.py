@@ -77,6 +77,34 @@ def metrics_full(n_pos, n_neg, pos_scores, neg_scores):
     return roc_auc_score(y, s), average_precision_score(y, s)
 
 
+def mcc_topk(n_pos, n_neg, pos_scores, neg_scores):
+    """
+    Matthews correlation coefficient (MCC) at the top-k operating point, where
+    k = n_pos (predict the k highest-scoring edges as positive — the natural
+    threshold for a ranked GRN prediction). MCC is bounded in [-1, 1] and folds
+    all four confusion-matrix cells (TP, FP, TN, FN) into one balanced score:
+
+        MCC = (TP*TN - FP*FN) / sqrt((TP+FP)(TP+FN)(TN+FP)(TN+FN))
+
+    Because it uses TN as well as TP, MCC is far less sensitive to the extreme
+    negative inflation that collapses AUPR under class imbalance.
+    """
+    from math import sqrt
+    k = n_pos
+    # A score threshold that selects the top-k edges. With TP scores ~N(1.5,1)
+    # and FP scores ~N(0,1), rank all scores and call the top k "predicted +".
+    all_scores = np.concatenate([pos_scores, neg_scores])
+    thresh = np.partition(all_scores, -k)[-k]  # k-th largest score
+    tp = int(np.sum(pos_scores >= thresh))
+    fp = int(np.sum(neg_scores >= thresh))
+    fn = n_pos - tp
+    tn = n_neg - fp
+    denom = sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
+    if denom == 0:
+        return 0.0
+    return (tp * tn - fp * fn) / denom
+
+
 def curves_subsampled(n_pos, n_neg, pos_scores, neg_scores, prevalence, seed):
     """
     ROC & PR curves. Subsample negatives if huge, then reweight so the curve
@@ -103,11 +131,12 @@ results = {}
 for N in SIZES:
     n_pos, n_neg, pos_s, neg_s, prev = make_scored_network(N, seed=100 + N)
     auroc, aupr = metrics_full(n_pos, n_neg, pos_s, neg_s)
+    mcc = mcc_topk(n_pos, n_neg, pos_s, neg_s)
     roc_c, pr_c = curves_subsampled(n_pos, n_neg, pos_s, neg_s, prev, seed=200 + N)
-    results[N] = dict(prev=prev, auroc=auroc, aupr=aupr,
+    results[N] = dict(prev=prev, auroc=auroc, aupr=aupr, mcc=mcc,
                       aupr_ratio=aupr / prev, roc=roc_c, pr=pr_c)
     print(f"N={N:5d}  prev={prev:.4f}  AUROC={auroc:.3f}  "
-          f"AUPR={aupr:.3f}  AUPR/prev={aupr / prev:.1f}")
+          f"AUPR={aupr:.3f}  MCC={mcc:.3f}  AUPR/prev={aupr / prev:.1f}")
 
 # ── Plot ──
 fig, axes = plt.subplots(3, 2, figsize=(13, 16))
@@ -187,18 +216,18 @@ for ratio in sampling_ratios:
           f"AUPR={aupr_r:.3f}  AUROC={auroc_r:.3f}  AUPR/prev={aupr_ratio_r:.1f}")
 
 # Panel D: SAME SCORER, DIFFERENT VERDICTS. A fixed-quality scorer is evaluated on
-# networks of increasing size; AUROC (green) stays flat while AUPR (red) collapses with
-# prevalence. The AUPR-ratio (yellow dashed, AUPR / prevalence) is shown as the common
-# "fix" — but it over-corrects and RISES with size, so it is not size-invariant either.
-# No AUPR-derived scalar (ratio, permutation z-score, or -log10(p)) gives a bounded,
-# size-invariant quality number; AUROC is the only prevalence-invariant summary here.
+# networks of increasing size. AUROC (green) stays flat and MCC (purple) stays high &
+# stable — both fold in true negatives, so they resist class imbalance — while AUPR (red)
+# collapses with prevalence purely from the growing negative class, not any quality change.
 d_sizes = np.array(SIZES, dtype=float)
 d_auroc_s = np.array([results[N]["auroc"] for N in SIZES])
 d_aupr_s = np.array([results[N]["aupr"] for N in SIZES])
-d_ratio_s = np.array([results[N]["aupr_ratio"] for N in SIZES])
+d_mcc_s = np.array([results[N]["mcc"] for N in SIZES])
 
 l_auroc, = axD.semilogx(d_sizes, d_auroc_s, "-o", color="#55A868", lw=2.2,
                         markersize=9, label="AUROC (prevalence-invariant)")
+l_mcc, = axD.semilogx(d_sizes, d_mcc_s, "-s", color="#8172B3", lw=2.2,
+                      markersize=9, label="MCC @ top-k (imbalance-robust)")
 l_aupr, = axD.semilogx(d_sizes, d_aupr_s, "-o", color="#C44E52", lw=2.2,
                        markersize=9, label="AUPR (collapses with size)")
 axD.set_xlabel("Network size (genes)", fontsize=13)
@@ -209,17 +238,7 @@ axD.set_xticklabels([str(N) for N in SIZES])
 axD.set_title("D. Same scorer, different verdicts", fontsize=13)
 axD.grid(True, which="both", alpha=0.3)
 
-# Secondary axis: AUPR-ratio (AUPR / prevalence), the common normalization attempt.
-# It over-corrects and rises with size — shown to illustrate it is NOT size-invariant.
-axD2 = axD.twinx()
-l_ratio, = axD2.semilogx(d_sizes, d_ratio_s, "--D", color="#B0A030", lw=2.0,
-                         markersize=8, alpha=0.9,
-                         label="AUPR-ratio (AUPR / prevalence)")
-axD2.set_ylabel("AUPR-ratio (AUPR / prevalence)", fontsize=12, color="#B0A030")
-axD2.tick_params(axis="y", labelcolor="#B0A030")
-axD2.set_ylim(0, d_ratio_s.max() * 1.35)
-
-axD.legend(handles=[l_auroc, l_aupr, l_ratio], fontsize=10, loc="center left")
+axD.legend(handles=[l_auroc, l_mcc, l_aupr], fontsize=10, loc="center left")
 
 # ── Panel E: negative subsampling inflates a poor AUPR — for ALL three sizes ──
 # Repeat the Panel-D subsampling sweep for each network size (same fixed-quality
@@ -265,37 +284,30 @@ axE.grid(True, which="both", alpha=0.3)
 # so AUPR/prevalence = 10^a * prevalence^(b-1) keeps changing as prevalence shrinks —
 # which is exactly why the AUPR-ratio is not size-invariant. The gap between the fitted
 # slope and 1 is the root cause of every AUPR pathology in panels C–E.
-F_sizes = np.array([50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000])
-f_prev, f_aupr = [], []
-for N in F_sizes:
-    n_pos, n_neg, pos_s, neg_s, prev = make_scored_network(int(N), seed=500 + int(N))
-    _, aupr = metrics_full(n_pos, n_neg, pos_s, neg_s)
-    f_prev.append(prev)
-    f_aupr.append(aupr)
-f_prev = np.array(f_prev)
-f_aupr = np.array(f_aupr)
-
-log_prev = np.log10(f_prev)
-log_aupr = np.log10(f_aupr)
-b, a = np.polyfit(log_prev, log_aupr, 1)   # log_aupr = b*log_prev + a
-
-axF.scatter(f_prev, f_aupr, s=70, color="#C44E52", zorder=5,
-            edgecolors="white", linewidths=1.2, label="AUPR (fixed-quality scorer)")
-# Fitted line
-xx = np.logspace(log_prev.min() - 0.2, log_prev.max() + 0.2, 100)
-axF.plot(xx, 10 ** a * xx ** b, "-", color="#C44E52", lw=2,
-         label=f"fit: AUPR ∝ prevalence$^{{{b:.2f}}}$")
-# Slope-1 reference (random predictor: AUPR = prevalence)
-axF.plot(xx, xx, "--", color="#888888", lw=1.6,
-         label="random: AUPR = prevalence (slope 1)")
-
-axF.set_xscale("log")
-axF.set_yscale("log")
-axF.set_xlabel("Prevalence (true / possible edges)", fontsize=13)
-axF.set_ylabel("AUPR", fontsize=13)
-axF.set_title("F. AUPR tracks prevalence sub-linearly (slope < 1)", fontsize=13)
-axF.legend(fontsize=10, loc="upper left")
-axF.grid(True, which="both", alpha=0.3)
+# ── Panel F: subsampling vs. not — the same scorer, two very different AUPRs ──
+# Linear-scale bar contrast per size: AUPR reported on a BALANCED 1:1 negative
+# subsample (inflated) vs. AUPR on the FULL edge set (honest). Same scorer, same
+# true edges — the only difference is whether negatives were subsampled. Uses the
+# data already computed for Panel E (first ratio = 1:1, last = full edge set).
+f_bal = np.array([E_rows[N][0][2] for N in SIZES])    # AUPR at 1:1 subsample
+f_full = np.array([E_rows[N][-1][2] for N in SIZES])  # AUPR at full edge set
+x = np.arange(len(SIZES))
+bw = 0.38
+axF.bar(x - bw / 2, f_bal, bw, color="#DD8452",
+        label="Balanced 1:1 subsample (inflated)")
+axF.bar(x + bw / 2, f_full, bw, color="#4C72B0",
+        label="Full edge set (honest)")
+for xi, (b_, f_) in enumerate(zip(f_bal, f_full)):
+    axF.text(xi - bw / 2, b_ + 0.02, f"{b_:.2f}", ha="center", va="bottom", fontsize=9)
+    axF.text(xi + bw / 2, f_ + 0.02, f"{f_:.3f}", ha="center", va="bottom", fontsize=9)
+axF.set_xticks(x)
+axF.set_xticklabels([f"{N}" for N in SIZES])
+axF.set_xlabel("Network size (genes)", fontsize=13)
+axF.set_ylabel("Reported AUPR", fontsize=13)
+axF.set_ylim(0, 1)
+axF.set_title("F. Subsampling vs. full edge set (same scorer)", fontsize=13)
+axF.legend(fontsize=10, loc="upper center")
+axF.grid(True, axis="y", alpha=0.3)
 
 plt.tight_layout()
 plt.savefig("grn_reliability_metrics.png", dpi=150)
@@ -361,9 +373,9 @@ _write_tsv(
 # Panel D: same-scorer verdicts across network sizes (AUROC, AUPR, AUPR-ratio, AUPR z-score)
 _write_tsv(
     "grn_reliability_panelD.tsv",
-    ["n_genes", "prevalence", "AUROC", "AUPR", "AUPR_ratio"],
+    ["n_genes", "prevalence", "AUROC", "AUPR", "MCC_topk"],
     [[N, f"{results[N]['prev']:.6f}", f"{results[N]['auroc']:.4f}",
-      f"{results[N]['aupr']:.4f}", f"{results[N]['aupr_ratio']:.3f}"]
+      f"{results[N]['aupr']:.4f}", f"{results[N]['mcc']:.4f}"]
      for N in SIZES],
 )
 
@@ -382,10 +394,10 @@ for N in SIZES:
         [[f"{r[0]:.2f}", f"{r[1]:.6f}", f"{r[2]:.4f}"] for r in E_rows[N]],
     )
 
-# Panel F: AUPR vs prevalence across sizes, plus the fitted log-log slope b
+# Panel F: subsampled (1:1) vs. full-edge-set AUPR per size
 _write_tsv(
     "grn_reliability_panelF.tsv",
-    ["n_genes", "prevalence", "AUPR", f"fit_slope_b={b:.4f}"],
-    [[int(N), f"{p:.6f}", f"{ap:.6f}", ""]
-     for N, p, ap in zip(F_sizes, f_prev, f_aupr)],
+    ["n_genes", "AUPR_balanced_1to1", "AUPR_full_edge_set"],
+    [[N, f"{b_:.4f}", f"{f_:.4f}"]
+     for N, b_, f_ in zip(SIZES, f_bal, f_full)],
 )
