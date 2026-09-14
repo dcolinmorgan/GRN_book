@@ -42,14 +42,15 @@ sizes, so scorer *quality* is fixed; only class prevalence changes.
 - **B** — ROC curves are nearly identical across sizes (AUROC is
   prevalence-invariant)
 - **C** — PR curves collapse toward each size's prevalence baseline (dashed)
-- **D** — *same scorer, different verdicts:* AUROC (green) stays flat, while both
-  AUPR (red) and MCC at the top-k operating point (purple) decline with size —
-  showing that even MCC is not fully imbalance-proof; only AUROC is invariant
+- **D** — *same scorer, different verdicts:* AUROC (green) stays flat, while AUPR
+  (red) and MCC at the top-k operating point (purple) decline with size; the
+  AUPR-ratio (AUPR / prevalence, yellow dashed, right axis) is the "unfair fix"
+  we critique — it over-corrects and RISES with size. Only AUROC is invariant.
 - **E** — negative subsampling inflates a poor AUPR at every network size
-  (log-scale sweep over neg:pos ratio)
-- **F** — the plain contrast: reported AUPR on a **balanced 1:1 subsample** vs.
-  on the **full edge set**, same scorer. Balanced subsampling reports ~0.85 at
-  every size while the honest full-set AUPR collapses (0.54 → 0.13 → 0.02)
+  (reported AUPR vs neg:pos ratio, **log** y-axis)
+- **F** — the same sweep as E on a **linear** y-axis: the honest high-negative end
+  collapses to nearly zero while the balanced (1:1) end stays high, showing the
+  inflation in true proportion
 
 ```bash
 python plot_grn_reliability.py   # writes grn_reliability_metrics.png / .pdf + per-panel TSVs

@@ -216,13 +216,16 @@ for ratio in sampling_ratios:
           f"AUPR={aupr_r:.3f}  AUROC={auroc_r:.3f}  AUPR/prev={aupr_ratio_r:.1f}")
 
 # Panel D: SAME SCORER, DIFFERENT VERDICTS. A fixed-quality scorer is evaluated on
-# networks of increasing size. AUROC (green) stays flat and MCC (purple) stays high &
-# stable — both fold in true negatives, so they resist class imbalance — while AUPR (red)
-# collapses with prevalence purely from the growing negative class, not any quality change.
+# networks of increasing size. AUROC (green) stays flat; MCC @ top-k (purple) is more
+# balanced but still declines; AUPR (red) collapses with prevalence. The AUPR-ratio
+# (yellow dashed, right axis) is the "unfair fix" we critique: dividing AUPR by its
+# random baseline OVER-corrects, so it RISES with size instead of staying flat — it is
+# not size-invariant either. Only AUROC is genuinely prevalence-invariant here.
 d_sizes = np.array(SIZES, dtype=float)
 d_auroc_s = np.array([results[N]["auroc"] for N in SIZES])
 d_aupr_s = np.array([results[N]["aupr"] for N in SIZES])
 d_mcc_s = np.array([results[N]["mcc"] for N in SIZES])
+d_ratio_s = np.array([results[N]["aupr_ratio"] for N in SIZES])
 
 l_auroc, = axD.semilogx(d_sizes, d_auroc_s, "-o", color="#55A868", lw=2.2,
                         markersize=9, label="AUROC (prevalence-invariant)")
@@ -238,7 +241,17 @@ axD.set_xticklabels([str(N) for N in SIZES])
 axD.set_title("D. Same scorer, different verdicts", fontsize=13)
 axD.grid(True, which="both", alpha=0.3)
 
-axD.legend(handles=[l_auroc, l_mcc, l_aupr], fontsize=10, loc="center left")
+# Secondary axis: AUPR-ratio (AUPR / prevalence) — the "unfair" normalization we
+# critique. It over-corrects and RISES with size, so it is not size-invariant.
+axD2 = axD.twinx()
+l_ratio, = axD2.semilogx(d_sizes, d_ratio_s, "--D", color="#B0A030", lw=2.0,
+                         markersize=8, alpha=0.9,
+                         label="AUPR-ratio (AUPR / prevalence, over-corrects)")
+axD2.set_ylabel("AUPR-ratio (AUPR / prevalence)", fontsize=12, color="#B0A030")
+axD2.tick_params(axis="y", labelcolor="#B0A030")
+axD2.set_ylim(0, d_ratio_s.max() * 1.35)
+
+axD.legend(handles=[l_auroc, l_mcc, l_aupr, l_ratio], fontsize=9, loc="center left")
 
 # ── Panel E: negative subsampling inflates a poor AUPR — for ALL three sizes ──
 # Repeat the Panel-D subsampling sweep for each network size (same fixed-quality
@@ -276,38 +289,26 @@ axE.set_title("E. Subsampling inflates a poor AUPR (all sizes)", fontsize=13)
 axE.legend(fontsize=11, loc="upper right")
 axE.grid(True, which="both", alpha=0.3)
 
-# ── Panel F: WHY no AUPR normalization works — the log-log AUPR vs prevalence law ──
-# For a fixed-quality scorer, sweep many network sizes and plot log10(AUPR) against
-# log10(prevalence). The points fall on a line log(AUPR) = a + b*log(prevalence).
-# A random predictor has AUPR = prevalence exactly, i.e. slope b = 1 (grey reference).
-# A real, discriminative scorer has b < 1 (its AUPR decays SUB-linearly in prevalence),
-# so AUPR/prevalence = 10^a * prevalence^(b-1) keeps changing as prevalence shrinks —
-# which is exactly why the AUPR-ratio is not size-invariant. The gap between the fitted
-# slope and 1 is the root cause of every AUPR pathology in panels C–E.
-# ── Panel F: subsampling vs. not — the same scorer, two very different AUPRs ──
-# Linear-scale bar contrast per size: AUPR reported on a BALANCED 1:1 negative
-# subsample (inflated) vs. AUPR on the FULL edge set (honest). Same scorer, same
-# true edges — the only difference is whether negatives were subsampled. Uses the
-# data already computed for Panel E (first ratio = 1:1, last = full edge set).
-f_bal = np.array([E_rows[N][0][2] for N in SIZES])    # AUPR at 1:1 subsample
-f_full = np.array([E_rows[N][-1][2] for N in SIZES])  # AUPR at full edge set
-x = np.arange(len(SIZES))
-bw = 0.38
-axF.bar(x - bw / 2, f_bal, bw, color="#DD8452",
-        label="Balanced 1:1 subsample (inflated)")
-axF.bar(x + bw / 2, f_full, bw, color="#4C72B0",
-        label="Full edge set (honest)")
-for xi, (b_, f_) in enumerate(zip(f_bal, f_full)):
-    axF.text(xi - bw / 2, b_ + 0.02, f"{b_:.2f}", ha="center", va="bottom", fontsize=9)
-    axF.text(xi + bw / 2, f_ + 0.02, f"{f_:.3f}", ha="center", va="bottom", fontsize=9)
-axF.set_xticks(x)
-axF.set_xticklabels([f"{N}" for N in SIZES])
-axF.set_xlabel("Network size (genes)", fontsize=13)
-axF.set_ylabel("Reported AUPR", fontsize=13)
+# ── Panel F: same sweep as E, on a LINEAR y-axis ──
+# Identical data to Panel E (reported AUPR vs neg:pos ratio, per size), but linear
+# instead of log y. On this scale the honest, high-negative end collapses to nearly
+# zero while the balanced (1:1) end stays high — showing in true proportion how much
+# subsampling inflates AUPR. Prevalence baselines (dashed) sit against the x-axis.
+for N in SIZES:
+    rows = E_rows[N]
+    e_ratio = np.array([r[0] for r in rows])
+    e_aupr = np.array([r[2] for r in rows])
+    e_prev = rows[-1][1]
+    axF.semilogx(e_ratio, e_aupr, "-o", color=SIZE_COLORS[N], lw=2.2,
+                 markersize=7, label=f"{N} genes")
+    axF.axhline(e_prev, color=SIZE_COLORS[N], ls="--", lw=1.3, alpha=0.9)
+
+axF.set_xlabel("Negatives kept per positive (neg:pos)", fontsize=13)
+axF.set_ylabel("Reported AUPR (linear scale)", fontsize=13)
 axF.set_ylim(0, 1)
-axF.set_title("F. Subsampling vs. full edge set (same scorer)", fontsize=13)
-axF.legend(fontsize=10, loc="upper center")
-axF.grid(True, axis="y", alpha=0.3)
+axF.set_title("F. Same as E, linear scale (collapse in true proportion)", fontsize=13)
+axF.legend(fontsize=11, loc="upper right")
+axF.grid(True, which="both", alpha=0.3)
 
 plt.tight_layout()
 plt.savefig("grn_reliability_metrics.png", dpi=150)
@@ -373,9 +374,10 @@ _write_tsv(
 # Panel D: same-scorer verdicts across network sizes (AUROC, AUPR, AUPR-ratio, AUPR z-score)
 _write_tsv(
     "grn_reliability_panelD.tsv",
-    ["n_genes", "prevalence", "AUROC", "AUPR", "MCC_topk"],
+    ["n_genes", "prevalence", "AUROC", "AUPR", "MCC_topk", "AUPR_ratio"],
     [[N, f"{results[N]['prev']:.6f}", f"{results[N]['auroc']:.4f}",
-      f"{results[N]['aupr']:.4f}", f"{results[N]['mcc']:.4f}"]
+      f"{results[N]['aupr']:.4f}", f"{results[N]['mcc']:.4f}",
+      f"{results[N]['aupr_ratio']:.3f}"]
      for N in SIZES],
 )
 
@@ -394,10 +396,5 @@ for N in SIZES:
         [[f"{r[0]:.2f}", f"{r[1]:.6f}", f"{r[2]:.4f}"] for r in E_rows[N]],
     )
 
-# Panel F: subsampled (1:1) vs. full-edge-set AUPR per size
-_write_tsv(
-    "grn_reliability_panelF.tsv",
-    ["n_genes", "AUPR_balanced_1to1", "AUPR_full_edge_set"],
-    [[N, f"{b_:.4f}", f"{f_:.4f}"]
-     for N, b_, f_ in zip(SIZES, f_bal, f_full)],
-)
+# Panel F uses the same data as Panel E (reported AUPR vs neg:pos ratio per size),
+# only on a linear y-axis; see grn_reliability_panelE_*.tsv.
