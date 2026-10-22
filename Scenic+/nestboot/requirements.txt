@@ -1,0 +1,11 @@
+# Python 3.11.8. scenicplus declares Requires-Python <=3.11.8, and dask 2024.2.1
+# breaks on CPython >=3.11.9. setuptools must stay below 81 (pkg_resources).
+# Install with the build constraint from this directory:
+#   uv venv --python 3.11.8 .venv
+#   uv pip install --build-constraints build-constraints.txt -r requirements.txt
+#   uv pip install "setuptools<81"
+scenicplus @ git+https://github.com/aertslab/scenicplus.git@840dab85de3044846234c157e327b6ea0290abfb
+mudata
+pandas
+numpy
+scipy
