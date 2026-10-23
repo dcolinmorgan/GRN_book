@@ -193,7 +193,7 @@ def main():
     run.add_argument("--seed", type=int, default=42)
     run.set_defaults(func=cmd_run)
 
-    stats = sub.add_parser("stats", help="Rebuild summary and McNemar NestBoot tests from eRegulons.tsv")
+    stats = sub.add_parser("stats", help="Rebuild eRegulon size summaries from eRegulons.tsv")
     stats.set_defaults(func=cmd_stats)
 
     args = parser.parse_args()

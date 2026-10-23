@@ -65,13 +65,13 @@ These scripts read the finished `tf_to_gene.tsv` tables. They do not rerun GRNBo
 
 `chapter_nestboot_fig2.py` writes `fig2_degree_3_and_5.png` and `fig2_all_edges.png`. Copies of those figures are in `results_summary/plots/`. The write-up is `results_summary/ANALYSIS.md`.
 
-## What the statistics test
+## What the analysis is
 
-A TF–gene link or eRegulon name is present or absent in each run. Run `i` real is paired with run `i` null. The exact McNemar test asks whether disagreements fall on the real side. q-values are Benjamini–Hochberg within TF–gene links and within eRegulon names. See `results_summary/REPRODUCIBILITY.md` and `results_summary/NESTBOOT.md`.
+A link’s support is the fraction of the 50 seeds that contain it. Equation 1 is the number of shuffled links with support above B, divided by the number of measured links with support above B. The cutoff is the smallest B at which that ratio is at most 0.05. `fig2_grid.py` computes this at 3–5 links per node and for every TF–gene edge, after dropping self-links. The write-up is `results_summary/ANALYSIS.md`.
 
 ## What is reproducible
 
-The deposited eRegulon tables plus `python nestboot_scenicplus.py stats` reproduce the published counts and McNemar tests. A full rerun uses the deposited inputs and `python nestboot_scenicplus.py run`. Both depend on the environment in `requirements.lock` (Python 3.11.8, scenicplus commit `840dab85`, and the pinned NumPy, pandas, arboreto, dask, and scikit-learn versions). `scenicplus==1.0a2` on that list is not a PyPI release. Use the git installs in Setup.
+The deposited TF–gene tables plus `python fig2_grid.py` reproduce the frequency curves. A full rerun uses the deposited inputs and `python nestboot_scenicplus.py run`. Both depend on the environment in `requirements.lock` (Python 3.11.8, scenicplus commit `840dab85`, and the pinned NumPy, pandas, arboreto, dask, and scikit-learn versions). `scenicplus==1.0a2` on that list is not a PyPI release. Use the git installs in Setup.
 
 This is as far as the released files go. They do not make a bitwise rerun:
 

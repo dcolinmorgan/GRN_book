@@ -97,7 +97,7 @@ On the degree-limited panels the red frequency line only passes through the 0–
 
 ## What this is not
 
-The earlier report mixed four different filters: presence in the SCENIC+ eRegulon table, a per-link McNemar test, a sweep of GRNBoost2 rank cutoffs, and a split of the 50 seeds into fake outer groups. Those tables are still on disk (`scenicplus_support_fdr.txt`, `sparsity_fdr.tsv`, `inner_bootstrap_fdr.tsv`, `tf_gene_nestboot.tsv`). They are not NestBoot.
+Earlier tables also swept GRNBoost2 rank cutoffs and split the 50 seeds into groups (`sparsity_fdr.tsv`, `inner_bootstrap_fdr.tsv`). The NestBoot result for this chapter is Equation 1 on the degree cuts and on all edges, in the figures above.
 
 In particular, “seen in at least 2 of 50 eRegulon runs” is Equation 1 applied to SCENIC+’s own triplet filter, which keeps about 19,000 TF–gene links per run rather than 3 links per node. And splitting the 50 seeds into 5×10 or 10×5 does not create the paper’s outer loop. An outer run would resample the experiments, re-shuffle experiment-wise, and repeat the inner Q inferences. That was not done.
 

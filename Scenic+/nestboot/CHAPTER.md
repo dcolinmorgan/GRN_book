@@ -1,6 +1,6 @@
 # NestBoot SCENIC+ chapter modules
 
-The repository is [Scenic+/nestboot](https://github.com/dcolinmorgan/GRN_book/tree/main/Scenic+/nestboot). Four modules: install, load data, run, analysis. The runner is `nestboot_scenicplus.py`. `nestboot_analysis.py` is not a separate entry point. `python nestboot_scenicplus.py stats` calls it.
+The repository is [Scenic+/nestboot](https://github.com/dcolinmorgan/GRN_book/tree/main/Scenic+/nestboot). Four modules: install, load data, run, analysis. The runner is `nestboot_scenicplus.py`. The NestBoot figures are `fig2_grid.py` and `chapter_nestboot_fig2.py`.
 
 The Aerts-lab code is the five git commits in the install module. The cisTarget rankings database is a file in the Zenodo record, not a second download.
 
@@ -50,20 +50,16 @@ A side that already has both `tf_to_gene.tsv` and `eRegulons.tsv` is skipped. If
 
 ## Analysis
 
-eRegulon counts and the McNemar tests:
+NestBoot, at one sparsity, scores each link by how often the 50 seeds infer it. Support is that fraction. Equation 1 sets the cutoff B:
 
-```bash
-python nestboot_scenicplus.py stats
-```
+FDR(B) = (shuffled links with support > B) / (measured links with support > B)
 
-That calls `build_nestboot_stats.py` and `nestboot_analysis.py`. It reads `eRegulons.tsv` only.
-
-Link frequency at 3 and 5 links per node, and for every TF–gene edge, with self-links removed:
+The cutoff is the smallest B at which this ratio is at most 0.05. The curves are not smoothed. Each point is the fraction of links at that exact support.
 
 ```bash
 python fig2_grid.py
 ```
 
-`chapter_nestboot_fig2.py` is the same frequency figure written section by section for the book text. The curves are not smoothed. Each point is the fraction of links at that exact support.
+That writes the frequency curves for 3, 4, and 5 links per gene, 3, 4, and 5 links per TF, and for every TF–gene edge. Self-links are removed before the cut. `chapter_nestboot_fig2.py` is the book version of the 3-and-5 figure and the all-edges figure. The y-axis is frequency from 0 to 0.2. The one-run peak sits above that frame.
 
-Equation 1 at FDR 0.05 is the smallest support B where the number of shuffled links above B, divided by the number of measured links above B, is at most 0.05. These 50 seeds are one inner loop. They are not 100 outer runs of experiment bootstraps.
+These 50 seeds are one inner loop. They are not 100 outer runs of experiment bootstraps, so a link is kept when its support exceeds B. There is no further “pass every outer run” filter.
