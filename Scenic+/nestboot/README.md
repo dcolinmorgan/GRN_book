@@ -6,16 +6,22 @@ The published numbers were produced with scenicplus 1.0a2 at commit `840dab85de3
 
 ## Setup
 
-Python 3.11.8 and [uv](https://astral.sh/uv).
+Python 3.11.8 and [uv](https://astral.sh/uv). scenicplus 1.0a2 is not a PyPI release, and neither are the aertslab packages it was run with. Install those five git commits first, then the pins in `requirements.lock`. `setuptools` must stay below 81 because scenicplus still imports `pkg_resources`. dask 2024.2.1 breaks on CPython 3.11.9 and newer.
 
 ```bash
 uv venv --python 3.11.8 .venv
 source .venv/bin/activate
-uv pip install --build-constraints build-constraints.txt -r requirements.txt
+uv pip install --build-constraints build-constraints.txt \
+  "scenicplus @ git+https://github.com/aertslab/scenicplus.git@840dab85de3044846234c157e327b6ea0290abfb" \
+  "pycistarget @ git+https://github.com/aertslab/pycistarget@5aa517604e4842539a7531c16905825dc7cb80fb" \
+  "pycisTopic @ git+https://github.com/aertslab/pycisTopic@787ce422a37f5975b0ebb9e7b19eeaed44847501" \
+  "pyscenic @ git+https://github.com/aertslab/pySCENIC@06bafba412792f6efa5a552a23bb221cc3bdea1b" \
+  "loomxpy @ git+https://github.com/aertslab/LoomXpy@61995ff10940968eac2cee8fe48300ab477a15d0"
+uv pip install --build-constraints build-constraints.txt -r requirements.lock
 uv pip install "setuptools<81"
 ```
 
-On a CPU without AVX2, reinstall the matching `polars-lts-cpu` wheel. `setup_new_machine.sh` does that check.
+`requirements.txt` is only the scenicplus commit plus `mudata`, `pandas`, `numpy`, and `scipy`. That is enough for `nestboot_scenicplus.py stats` and the Figure 2 scripts. A GRNBoost2 rerun needs the lock above: NumPy 1.26.4, pandas 1.5.0, arboreto 0.1.6, dask and distributed 2024.2.1, and scikit-learn 1.3.2. On a CPU without AVX2, reinstall `polars-lts-cpu==0.20.13`. This machine did that.
 
 ## Inputs
 
@@ -63,7 +69,7 @@ A TF–gene link or eRegulon name is present or absent in each run. Run `i` real
 
 ## What is reproducible
 
-The deposited eRegulon tables plus `python nestboot_scenicplus.py stats` reproduce the published counts and McNemar tests. A full rerun uses the deposited inputs and `python nestboot_scenicplus.py run`. Both depend on the environment in `requirements.lock` (Python 3.11.8, scenicplus commit `840dab85`, and the pinned NumPy, pandas, arboreto, dask, and scikit-learn versions). Install scenicplus from that git commit first; `scenicplus==1.0a2` on the lock list is not a PyPI release.
+The deposited eRegulon tables plus `python nestboot_scenicplus.py stats` reproduce the published counts and McNemar tests. A full rerun uses the deposited inputs and `python nestboot_scenicplus.py run`. Both depend on the environment in `requirements.lock` (Python 3.11.8, scenicplus commit `840dab85`, and the pinned NumPy, pandas, arboreto, dask, and scikit-learn versions). `scenicplus==1.0a2` on that list is not a PyPI release. Use the git installs in Setup.
 
 This is as far as the released files go. They do not make a bitwise rerun:
 
