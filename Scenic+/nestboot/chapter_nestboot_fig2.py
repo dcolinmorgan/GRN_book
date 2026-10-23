@@ -136,34 +136,28 @@ def run_sets(side, degree, kind):
 
 
 # ---------------------------------------------------------------------------
-# 6. One panel. Dashed lines are overlap (left axis, 0 to 1).
-#    Solid lines are frequency (right axis, zoomed to 0-0.02 so the
-#    one-run peak stays above the frame). The black line is the cutoff.
+# 6. One panel. Frequency only. Each point is the raw fraction of links
+#    whose support is exactly that multiple of 1/50. Nothing is smoothed.
+#    The line only joins those 50 points. The y-axis runs from 0 to 1 so
+#    the one-run peak and the tail are both on the scale. The black line
+#    is the Equation 1 cutoff.
 # ---------------------------------------------------------------------------
 def draw(ax, title, measured_counts, shuffled_counts, measured_sets, shuffled_sets):
     _, cutoff = equation1(measured_counts, shuffled_counts)
     support = np.arange(1, N_RUNS + 1) / N_RUNS
-    measured_overlap = overlap_curve(measured_sets, measured_counts)
-    shuffled_overlap = overlap_curve(shuffled_sets, shuffled_counts)
     measured_frequency = frequency(measured_counts)
     shuffled_frequency = frequency(shuffled_counts)
 
-    ax.plot(support, measured_overlap[1:], color="#2166ac", ls="--", lw=1.5, label="Measured overlap")
-    ax.plot(support, shuffled_overlap[1:], color="#b2182b", ls="--", lw=1.5, label="Shuffled overlap")
+    ax.plot(support, measured_frequency[1:], color="#2166ac", lw=1.6, marker="o", ms=3, label="Measured")
+    ax.plot(support, shuffled_frequency[1:], color="#b2182b", lw=1.6, marker="^", ms=3, label="Shuffled")
     ax.axvline(cutoff, color="black", lw=1.0, label="FDR 0.05")
     ax.set_xlim(0, 1.02)
     ax.set_ylim(0, 1)
     ax.set_xlabel("Support")
-    ax.set_ylabel("Overlap")
+    ax.set_ylabel("Frequency")
     ax.set_title(title)
     ax.grid(True, ls="--", alpha=0.3)
-
-    right = ax.twinx()
-    right.plot(support, measured_frequency[1:], color="#2166ac", lw=1.6, label="Measured frequency")
-    right.plot(support, shuffled_frequency[1:], color="#b2182b", lw=1.6, label="Shuffled frequency")
-    right.set_ylim(0, 0.02)
-    right.set_ylabel("Frequency")
-    return ax, right
+    return ax
 
 
 def main():
@@ -177,9 +171,9 @@ def main():
         shuffled = support_counts(side, degree, "null")
         measured_sets = run_sets(side, degree, "real")
         shuffled_sets = run_sets(side, degree, "null")
-        ax, right = draw(ax, title, measured, shuffled, measured_sets, shuffled_sets)
-        handles = ax.lines + right.lines
-    fig.legend(handles, [h.get_label() for h in handles], loc="lower center", ncol=5, frameon=False, bbox_to_anchor=(0.5, 1.0))
+        ax = draw(ax, title, measured, shuffled, measured_sets, shuffled_sets)
+        handles = ax.lines
+    fig.legend(handles, [h.get_label() for h in handles], loc="lower center", ncol=3, frameon=False, bbox_to_anchor=(0.5, 1.0))
     fig.tight_layout(rect=(0, 0, 1, 0.96))
     fig.savefig("fig2_degree_3_and_5.png")
 
@@ -187,10 +181,10 @@ def main():
     fig, ax = plt.subplots(figsize=(7.4, 5.4))
     measured = support_counts(side, degree, "real")
     shuffled = support_counts(side, degree, "null")
-    ax, right = draw(
+    ax = draw(
         ax, title, measured, shuffled, run_sets(side, degree, "real"), run_sets(side, degree, "null")
     )
-    handles = ax.lines + right.lines
+    handles = ax.lines
     fig.legend(handles, [h.get_label() for h in handles], loc="lower center", ncol=3, frameon=False, bbox_to_anchor=(0.5, 1.0))
     fig.tight_layout(rect=(0, 0, 1, 0.88))
     fig.savefig("fig2_all_edges.png")
