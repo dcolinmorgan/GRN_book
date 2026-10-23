@@ -83,7 +83,11 @@ This is as far as the released files go. They do not make a bitwise rerun:
 
 ## Zenodo
 
-One unpublished draft, [23559287](https://zenodo.org/deposit/23559287). Inputs and the 50 real/null outputs are in that record. The run outputs are packed as `outputs_all.zip`. Filenames are flat because a Zenodo bucket key cannot contain directories. `zenodo_manifest.tsv` maps each key back to a relative path and records sha256.
+One public record, [10.5281/zenodo.23559287](https://doi.org/10.5281/zenodo.23559287). Inputs and the 50 real/null outputs are in it. The run outputs are packed as `outputs_all.zip`.
+
+```bash
+zenodo_get 10.5281/zenodo.23559287
+```
 
 ```bash
 python upload_zenodo.py --manifest-only

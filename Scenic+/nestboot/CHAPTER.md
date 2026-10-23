@@ -25,15 +25,13 @@ uv pip install "setuptools<81"
 
 ## Load data
 
-One Zenodo record holds the inputs and the 50 outputs: draft [23559287](https://zenodo.org/deposit/23559287). It is not public until it is published. A draft download needs a Zenodo token. `download_zenodo.py` uses the public record when it exists, and the draft API otherwise. It also unpacks `outputs_all.zip`.
+One public Zenodo record holds the inputs and the 50 outputs: [10.5281/zenodo.23559287](https://doi.org/10.5281/zenodo.23559287). The rankings database is in that record.
 
 ```bash
-ZENODO_TOKEN=... python download_zenodo.py
+zenodo_get 10.5281/zenodo.23559287
 ```
 
-After that, this directory contains `work/nestboot_scenicplus/base_mudata.h5mu`, `work/menr/tf_names.txt`, `work/menr/cistromes_direct.h5ad`, `results_full_scenicplus/real_0/region_to_gene.tsv`, `hg38_screen_v10_clust.regions_vs_motifs.rankings.feather`, and `results_full_scenicplus/real_*` and `null_*`.
-
-`restore_zenodo.py` belongs to an older flat-file layout. Do not use it for this record.
+`zenodo_get` reads the public record API and saves every file. Unpack the runs with `unzip outputs_all.zip`. The downloaded names are flat (`work__nestboot_scenicplus__base_mudata.h5mu`, and so on). `restore_zenodo.py` belongs to an older two-deposit layout. Do not use it for this record.
 
 To recompute the figures from the deposited runs, stop here and go to Analysis. The rankings file is only required for a fresh eGRN inference.
 
