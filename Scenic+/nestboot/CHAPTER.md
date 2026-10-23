@@ -63,3 +63,9 @@ python fig2_grid.py
 That writes the frequency curves for 3, 4, and 5 links per gene, 3, 4, and 5 links per TF, and for every TF–gene edge. Self-links are removed before the cut. `chapter_nestboot_fig2.py` is the book version of the 3-and-5 figure and the all-edges figure. The y-axis is frequency from 0 to 0.2. The one-run peak sits above that frame.
 
 These 50 seeds are one inner loop. They are not 100 outer runs of experiment bootstraps, so a link is kept when its support exceeds B. There is no further “pass every outer run” filter.
+
+### When an outer loop is present
+
+The 2019 procedure has two levels. The inner loop, Q times, resamples experiments and infers a network. Support inside one outer run is the fraction of those Q inferences that contain the link. The outer loop repeats that whole inner loop R times, with a fresh experiment-wise shuffle each time. Equation 1 is applied to the support curves, and a link is kept only when its support exceeds B in every one of the R outer runs. That second requirement is why the false-discovery rate in the paper is lower than the rate requested from Equation 1. The published case used R = 100 and Q = 1000.
+
+That arrangement needs the outer runs to exist. They do not here. The 50 GRNBoost2 seeds are one set of inferences on one matrix, so R = 1 and Q = 50. Splitting those 50 into groups, for example 5 groups of 10 or 10 groups of 5, only repartitions the same seeds. It does not create a second bootstrap. Do that split only when each outer run has its own inner inferences.
