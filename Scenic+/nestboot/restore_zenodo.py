@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Restore Zenodo's flat filenames to the paths nestboot.py expects.
+"""Restore Zenodo's flat filenames to the paths nestboot_scenicplus.py expects.
 
 Zenodo bucket keys cannot contain directories, so upload_zenodo.py stores
 `results_full_scenicplus/real_0/eRegulons.tsv` as

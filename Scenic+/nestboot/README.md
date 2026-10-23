@@ -34,8 +34,8 @@ On a CPU without AVX2, reinstall the matching `polars-lts-cpu` wheel. `setup_new
 From this directory, with the virtualenv active:
 
 ```bash
-python nestboot.py run --n_cpu 40
-python nestboot.py stats
+python nestboot_scenicplus.py run --n_cpu 40
+python nestboot_scenicplus.py stats
 ```
 
 `run` covers runs 0–49. A finished side (non-empty `tf_to_gene.tsv` and `eRegulons.tsv`) is skipped. A side that already has `tf_to_gene.tsv` repeats only eGRN. Seeds are `42 + run` for real and `42 + run + 10000` for the null. The null expression matrix is deleted after GRNBoost2.
@@ -63,7 +63,7 @@ A TF–gene link or eRegulon name is present or absent in each run. Run `i` real
 
 ## What is reproducible
 
-The deposited eRegulon tables plus `python nestboot.py stats` reproduce the published counts and McNemar tests. A full rerun uses the deposited inputs and `python nestboot.py run`. Both depend on the environment in `requirements.lock` (Python 3.11.8, scenicplus commit `840dab85`, and the pinned NumPy, pandas, arboreto, dask, and scikit-learn versions). Install scenicplus from that git commit first; `scenicplus==1.0a2` on the lock list is not a PyPI release.
+The deposited eRegulon tables plus `python nestboot_scenicplus.py stats` reproduce the published counts and McNemar tests. A full rerun uses the deposited inputs and `python nestboot_scenicplus.py run`. Both depend on the environment in `requirements.lock` (Python 3.11.8, scenicplus commit `840dab85`, and the pinned NumPy, pandas, arboreto, dask, and scikit-learn versions). Install scenicplus from that git commit first; `scenicplus==1.0a2` on the lock list is not a PyPI release.
 
 This is as far as the released files go. They do not make a bitwise rerun:
 

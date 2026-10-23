@@ -29,7 +29,7 @@ INPUTS = [
 ]
 
 CODE = [
-    "nestboot.py",
+    "nestboot_scenicplus.py",
     "nestboot_optimized.py",
     "build_nestboot_stats.py",
     "nestboot_analysis.py",
@@ -60,7 +60,7 @@ DEPOSITS = {
         "title": "NestBoot SCENIC+ benchmark inputs",
         "description": (
             "<p>Inputs required to rerun the NestBoot SCENIC+ benchmark with "
-            "<code>python nestboot.py run</code>. scenicplus 1.0a2 commit "
+            "<code>python nestboot_scenicplus.py run</code>. scenicplus 1.0a2 commit "
             "840dab85de3044846234c157e327b6ea0290abfb. "
             "region_to_gene.tsv is the fixed region-to-gene table used for every "
             "bootstrap (it is not recomputed inside the bootstrap). "
@@ -78,7 +78,7 @@ DEPOSITS = {
             "<code>results_summary/</code> is the reproducibility report and the "
             "McNemar tests, and is enough for the statistical analysis without "
             "rerunning GRNBoost2. Null eRegulons were produced by the eGRN "
-            "command in nestboot.py (scenicplus 840dab85); "
+            "command in nestboot_scenicplus.py (scenicplus 840dab85); "
             "eRegulons.legacy.tsv files from an earlier pass are not included.</p>"
         ),
         "files": None,
