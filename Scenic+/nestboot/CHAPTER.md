@@ -41,7 +41,12 @@ To recompute the figures from the deposited runs, stop here and go to Analysis. 
 python nestboot_scenicplus.py run --n_cpu 40
 ```
 
-Runs 0–49. A finished side is skipped. Seeds are `42 + run` for the measured data and `42 + run + 10000` for the shuffle. The shuffle permutes each gene across cells. Region-to-gene, cistromes, and the rankings database stay fixed. GRNBoost2 at a different `--n_cpu` need not match the deposited `tf_to_gene.tsv` link for link.
+This does not resample cells and it does not repeat an outer loop. It writes 50 pairs under `results_full_scenicplus/`. For run `i`:
+
+1. Measured side, seed `42 + i`. GRNBoost2 (`scenicplus grn_inference TF_to_gene`, method GBM) scores TF–gene importance on the observed multiome, using 40 cores. The eGRN step then builds `eRegulons.tsv` from that table plus the fixed region-to-gene links, direct cistromes, and the rankings database.
+2. Shuffled side, seed `42 + i + 10000`. Each gene’s expression is permuted across cells on its own. GRNBoost2 and the eGRN step are repeated on that matrix. The shuffled MuData file is deleted after GRNBoost2. The region-to-gene table, cistromes, and rankings are the same files as the measured side.
+
+A side that already has both `tf_to_gene.tsv` and `eRegulons.tsv` is skipped. If only the TF–gene table is present, only the eGRN step is repeated. `--n_cpu 40` is the worker count for both scenicplus calls. The same seed at a different core count need not reproduce the deposited links.
 
 ## Analysis
 

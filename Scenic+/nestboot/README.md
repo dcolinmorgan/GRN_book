@@ -46,7 +46,7 @@ python nestboot_scenicplus.py run --n_cpu 40
 python nestboot_scenicplus.py stats
 ```
 
-`run` covers runs 0–49. A finished side (non-empty `tf_to_gene.tsv` and `eRegulons.tsv`) is skipped. A side that already has `tf_to_gene.tsv` repeats only eGRN. Seeds are `42 + run` for real and `42 + run + 10000` for the null. The null expression matrix is deleted after GRNBoost2.
+`run` covers runs 0–49. For each run it writes a measured GRNBoost2 table and eGRN, then a matched null: each gene’s expression is shuffled across cells, and both scenicplus steps are repeated. `--n_cpu` is the worker count for those calls. Seeds are `42 + run` and `42 + run + 10000`. Region-to-gene, cistromes, and the rankings database are not resampled. A finished side (non-empty `tf_to_gene.tsv` and `eRegulons.tsv`) is skipped. A side that already has `tf_to_gene.tsv` repeats only eGRN. The null expression matrix is deleted after GRNBoost2. See CHAPTER.md for the step order.
 
 `stats` rewrites `results_summary/` from the 50 `eRegulons.tsv` pairs. That step does not need the rankings database or GRNBoost2. It calls `build_nestboot_stats.py` and `nestboot_analysis.py`.
 
