@@ -138,9 +138,9 @@ def run_sets(side, degree, kind):
 # ---------------------------------------------------------------------------
 # 6. One panel. Frequency only. Each point is the raw fraction of links
 #    whose support is exactly that multiple of 1/50. Nothing is smoothed.
-#    The line only joins those 50 points. The y-axis runs from 0 to 1 so
-#    the one-run peak and the tail are both on the scale. The black line
-#    is the Equation 1 cutoff.
+#    The line only joins those 50 points. The y-axis runs from 0 to 0.2.
+#    The one-run peak sits above that frame. The black line is the
+#    Equation 1 cutoff.
 # ---------------------------------------------------------------------------
 def draw(ax, title, measured_counts, shuffled_counts, measured_sets, shuffled_sets):
     _, cutoff = equation1(measured_counts, shuffled_counts)
@@ -152,7 +152,7 @@ def draw(ax, title, measured_counts, shuffled_counts, measured_sets, shuffled_se
     ax.plot(support, shuffled_frequency[1:], color="#b2182b", lw=1.6, marker="^", ms=3, label="Shuffled")
     ax.axvline(cutoff, color="black", lw=1.0, label="FDR 0.05")
     ax.set_xlim(0, 1.02)
-    ax.set_ylim(0, 1)
+    ax.set_ylim(0, 0.2)
     ax.set_xlabel("Support")
     ax.set_ylabel("Frequency")
     ax.set_title(title)

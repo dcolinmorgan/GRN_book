@@ -81,7 +81,7 @@ The curves are in `fig2_support_frequency_overlap.tsv`.
 
 ![All TF–gene edges](plots/fig2_all_edges.png)
 
-The 2×2 is degrees 3 and 5 only. The top row is regulators per gene. The bottom row is targets per TF. The second figure is every TF–gene edge GRNBoost2 wrote, with no degree cut. Both show link frequency only. Blue is measured, red is shuffled, and the black line is that panel’s Equation 1 cutoff. The y-axis runs from 0 to 1, so the one-run peak and the tail are on the same scale. Each point is the raw fraction of links at that support (1/50, 2/50, …). The curves are not smoothed. The line only joins those points. Self-links are removed. The values are in `fig2_degree_and_full.tsv`.
+The 2×2 is degrees 3 and 5 only. The top row is regulators per gene. The bottom row is targets per TF. The second figure is every TF–gene edge GRNBoost2 wrote, with no degree cut. Both show link frequency only. Blue is measured, red is shuffled, and the black line is that panel’s Equation 1 cutoff. The y-axis runs from 0 to 0.2. The one-run peak sits above that frame. Each point is the raw fraction of links at that support (1/50, 2/50, …). The curves are not smoothed. The line only joins those points. Self-links are removed. The values are in `fig2_degree_and_full.tsv`.
 
 | Graph | Edges scale | Cutoff | Measured links above it | Shuffled links above it | FDR | Shuffled frequency is 0 from |
 |---|---:|---:|---:|---:|---:|---:|
