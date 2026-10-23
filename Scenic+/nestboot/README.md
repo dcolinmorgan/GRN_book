@@ -1,5 +1,7 @@
 # NestBoot SCENIC+
 
+The book-chapter order is [CHAPTER.md](CHAPTER.md): install, load data, run, analysis.
+
 Fifty paired bootstraps of enhancer-driven gene regulatory networks. Each pair reruns the stochastic GRNBoost2 TF-to-gene step and rebuilds eRegulons. The region-to-gene table is held fixed. The null shuffles expression independently within each gene before GRNBoost2.
 
 The published numbers were produced with scenicplus 1.0a2 at commit `840dab85de3044846234c157e327b6ea0290abfb`. An earlier, unpinned eGRN pass wrote null networks one to two orders of magnitude smaller from the same TF-to-gene tables. Those files are `eRegulons.legacy.tsv` and are not used.
