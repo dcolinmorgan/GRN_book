@@ -40,7 +40,22 @@ python nestboot.py stats
 
 `run` covers runs 0–49. A finished side (non-empty `tf_to_gene.tsv` and `eRegulons.tsv`) is skipped. A side that already has `tf_to_gene.tsv` repeats only eGRN. Seeds are `42 + run` for real and `42 + run + 10000` for the null. The null expression matrix is deleted after GRNBoost2.
 
-`stats` rewrites `results_summary/` from the 50 `eRegulons.tsv` pairs. That step does not need the rankings database or GRNBoost2.
+`stats` rewrites `results_summary/` from the 50 `eRegulons.tsv` pairs. That step does not need the rankings database or GRNBoost2. It calls `build_nestboot_stats.py` and `nestboot_analysis.py`.
+
+## Support, overlap, and frequency
+
+These scripts read the finished `tf_to_gene.tsv` tables. They do not rerun GRNBoost2.
+
+| script | result |
+|---|---|
+| `plot_nestboot.py` | eRegulon figures, including Equation 1 on TF–gene presence |
+| `sparsity_fdr.py` | Equation 1 at 30 importance cutoffs |
+| `raw_degree_fdr.py` | support tables for all edges and for 3–5 links per node, before dropping self-links |
+| `inner_bootstrap.py` | 5×10 and 10×5 splits of the eRegulon links |
+| `fig2_grid.py` | Figure 2 curves for 3–5 links per gene, 3–5 links per TF, and all edges, with self-links removed |
+| `chapter_nestboot_fig2.py` | the same final figures, written to be read section by section |
+
+`chapter_nestboot_fig2.py` writes `fig2_degree_3_and_5.png` and `fig2_all_edges.png`. Copies of those figures are in `results_summary/plots/`. The write-up is `results_summary/ANALYSIS.md`.
 
 ## What the statistics test
 
@@ -60,10 +75,7 @@ This is as far as the released files go. They do not make a bitwise rerun:
 
 ## Zenodo
 
-Two drafts. Filenames are flat because a Zenodo bucket key cannot contain directories. `zenodo_manifest.tsv` maps each key back to a relative path and records sha256.
-
-- inputs: MuData, TF names, cistromes, region-to-gene, rankings database, and the runner
-- outputs: 50 real and 50 null `eRegulons.tsv` and `tf_to_gene.tsv`, `results_summary/`, and the runner
+One unpublished draft, [23559287](https://zenodo.org/deposit/23559287). Inputs and the 50 real/null outputs are in that record. The run outputs are packed as `outputs_all.zip`. Filenames are flat because a Zenodo bucket key cannot contain directories. `zenodo_manifest.tsv` maps each key back to a relative path and records sha256.
 
 ```bash
 python upload_zenodo.py --manifest-only

@@ -84,6 +84,59 @@ def top_tfs():
     save(fig, "top_tfs")
 
 
+def support_frequency():
+    """NestBoot Eq. 1: FDR(B) = #{shuffled links with support > B} / #{measured links with support > B}.
+
+    The frequency profile is the number of links observed at each support.
+    B is the lowest support at which that ratio is at most 0.05.
+    """
+    links = pd.read_csv(
+        SRC / "tf_gene_nestboot.tsv", sep="\t", usecols=["real_n", "null_n"]
+    )
+    n = 50
+    real = links["real_n"].to_numpy()
+    null = links["null_n"].to_numpy()
+    support = np.arange(1, n + 1) / n
+    counts_norm = np.bincount(real, minlength=n + 1)[1:].astype(float)
+    counts_shuf = np.bincount(null, minlength=n + 1)[1:].astype(float)
+
+    # Strictly above k runs, k = 0..n-1, reported at support k/n.
+    ks = np.arange(0, n)
+    n_meas = np.array([(real > k).sum() for k in ks], dtype=float)
+    n_shuf = np.array([(null > k).sum() for k in ks], dtype=float)
+    fdr = np.divide(n_shuf, n_meas, out=np.full_like(n_meas, np.nan), where=n_meas > 0)
+    # First B with FDR <= 0.05. Consensus is links with support > B.
+    k_star = int(ks[np.argmax(fdr <= 0.05)])
+    b_star = k_star / n
+
+    fig, axes = plt.subplots(1, 2, figsize=(10.6, 4.4))
+    ax = axes[0]
+    ax.plot(support, counts_norm, color="#1b9e77", marker="o", ms=3.2, lw=1.6, label="Measured")
+    ax.plot(support, counts_shuf, color="#d95f02", marker="^", ms=3.2, ls="--", lw=1.6, label="Shuffled")
+    ax.axvline(b_star, color="gray", ls="--", lw=1)
+    ax.set_xlabel("Bootstrap support")
+    ax.set_ylabel("Links at this support")
+    ax.set_xlim(0, 1.02)
+    ax.set_yscale("log")
+    ax.grid(True, ls="--", alpha=0.3)
+    ax.legend(frameon=False, loc="upper right")
+    ax.set_title("Link-frequency profiles")
+
+    ax = axes[1]
+    ax.plot(ks / n, fdr, color="#333333", lw=1.8)
+    ax.axhline(0.05, color="#1b9e77", ls=":", lw=1, label="FDR 0.05")
+    ax.axvline(b_star, color="gray", ls="--", lw=1, label=f"B = {b_star:.2f}")
+    ax.set_xlabel("Support cutoff B")
+    ax.set_ylabel("Shuffled links > B  /  measured links > B")
+    ax.set_xlim(0, 1.02)
+    ax.set_ylim(0, 1.35)
+    ax.grid(True, ls="--", alpha=0.3)
+    ax.legend(frameon=False, loc="upper right")
+    ax.set_title("NestBoot FDR cutoff")
+    fig.tight_layout()
+    save(fig, "support_link_frequency")
+
+
 def eregulons():
     eg = pd.read_csv(SRC / "eregulon_nestboot.tsv", sep="\t")
     sig = eg[eg["q_mcnemar"] <= 0.05].sort_values(["real_n", "mean_genes_real"], ascending=[False, False]).head(20).iloc[::-1]
@@ -102,6 +155,7 @@ def eregulons():
 
 if __name__ == "__main__":
     paired_sizes()
+    support_frequency()
     link_support()
     top_tfs()
     eregulons()
