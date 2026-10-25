@@ -11,15 +11,18 @@ From `Scenic+/nestboot`, with Python 3.11.8 and uv:
 ```bash
 uv venv --python 3.11.8 .venv
 source .venv/bin/activate
-uv pip install --build-constraints build-constraints.txt \
+uv pip install --no-deps \
   "scenicplus @ git+https://github.com/aertslab/scenicplus.git@840dab85de3044846234c157e327b6ea0290abfb" \
   "pycistarget @ git+https://github.com/aertslab/pycistarget@5aa517604e4842539a7531c16905825dc7cb80fb" \
   "pycisTopic @ git+https://github.com/aertslab/pycisTopic@787ce422a37f5975b0ebb9e7b19eeaed44847501" \
   "pyscenic @ git+https://github.com/aertslab/pySCENIC@06bafba412792f6efa5a552a23bb221cc3bdea1b" \
   "loomxpy @ git+https://github.com/aertslab/LoomXpy@61995ff10940968eac2cee8fe48300ab477a15d0"
-uv pip install --build-constraints build-constraints.txt -r requirements.lock
+grep -Ev '^(scenicplus|pycistarget|pycisTopic|pyscenic|loomxpy)==' requirements.lock > /tmp/requirements.pypi.txt
+uv pip install --build-constraints build-constraints.txt -r /tmp/requirements.pypi.txt
 uv pip install "setuptools<81"
 ```
+
+`--no-deps` keeps `uv` from reading scenicplus's own requirement `pycistarget @ git+https://github.com/aertslab/pycistarget`, which has no commit and conflicts with the pin above. The same conflict exists for pycisTopic, pySCENIC, and LoomXpy. Drop those five names from the lock file before installing it. The git installs already provide them.
 
 `requirements.txt` is enough for the statistics and the figures. The lock is required for a GRNBoost2 rerun. On a CPU without AVX2, install `polars-lts-cpu==0.20.13` instead of `polars`.
 

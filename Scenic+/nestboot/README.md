@@ -13,15 +13,18 @@ Python 3.11.8 and [uv](https://astral.sh/uv). scenicplus 1.0a2 is not a PyPI rel
 ```bash
 uv venv --python 3.11.8 .venv
 source .venv/bin/activate
-uv pip install --build-constraints build-constraints.txt \
+uv pip install --no-deps \
   "scenicplus @ git+https://github.com/aertslab/scenicplus.git@840dab85de3044846234c157e327b6ea0290abfb" \
   "pycistarget @ git+https://github.com/aertslab/pycistarget@5aa517604e4842539a7531c16905825dc7cb80fb" \
   "pycisTopic @ git+https://github.com/aertslab/pycisTopic@787ce422a37f5975b0ebb9e7b19eeaed44847501" \
   "pyscenic @ git+https://github.com/aertslab/pySCENIC@06bafba412792f6efa5a552a23bb221cc3bdea1b" \
   "loomxpy @ git+https://github.com/aertslab/LoomXpy@61995ff10940968eac2cee8fe48300ab477a15d0"
-uv pip install --build-constraints build-constraints.txt -r requirements.lock
+grep -Ev '^(scenicplus|pycistarget|pycisTopic|pyscenic|loomxpy)==' requirements.lock > /tmp/requirements.pypi.txt
+uv pip install --build-constraints build-constraints.txt -r /tmp/requirements.pypi.txt
 uv pip install "setuptools<81"
 ```
+
+`--no-deps` is required. scenicplus at that commit depends on `pycistarget @ git+https://github.com/aertslab/pycistarget` with no commit, and the same kind of unpinned URL for pycisTopic, pySCENIC, and LoomXpy. Passing those URLs and the pinned commits in one `uv` command makes uv reject the solve. The lock file repeats the five names as version pins, so those lines are removed before the second install. The commits installed above already satisfy them.
 
 `requirements.txt` is only the scenicplus commit plus `mudata`, `pandas`, `numpy`, and `scipy`. That is enough for `nestboot_scenicplus.py stats` and the Figure 2 scripts. A GRNBoost2 rerun needs the lock above: NumPy 1.26.4, pandas 1.5.0, arboreto 0.1.6, dask and distributed 2024.2.1, and scikit-learn 1.3.2. On a CPU without AVX2, reinstall `polars-lts-cpu==0.20.13`. This machine did that.
 

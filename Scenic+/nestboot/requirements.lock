@@ -1,7 +1,9 @@
 # Observed environment that wrote the published eRegulons.
 # Python 3.11.8. Do not install this list blindly: scenicplus and the other
 # aertslab packages below were VCS installs, not PyPI releases of the same name.
-# Install those from the git URLs, then the remaining pins.
+# Install those five with `uv pip install --no-deps`, then install this file
+# with those five name==version lines removed. scenicplus depends on the
+# same packages at unpinned git URLs, and uv rejects both URLs at once.
 #
 # scenicplus @ git+https://github.com/aertslab/scenicplus.git@840dab85de3044846234c157e327b6ea0290abfb
 # pycistarget @ git+https://github.com/aertslab/pycistarget@5aa517604e4842539a7531c16905825dc7cb80fb
