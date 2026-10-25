@@ -1,6 +1,6 @@
-# NestBoot SCENIC+ chapter modules
+# Seed consensus for SCENIC+: chapter modules
 
-The repository is [Scenic+/nestboot](https://github.com/dcolinmorgan/GRN_book/tree/main/Scenic+/nestboot). Four modules: install, load data, run, analysis. The runner is `nestboot_scenicplus.py`. The NestBoot figures are `fig2_grid.py` and `chapter_nestboot_fig2.py`.
+The repository is [Scenic+/nestboot](https://github.com/dcolinmorgan/GRN_book/tree/main/Scenic+/nestboot). Four modules: install, load data, run, analysis. The runner is `nestboot_scenicplus.py`. The figures are `fig2_grid.py` and `chapter_nestboot_fig2.py`. Folder and file names keep the word "nestboot" from the original plan. The analysis below is a consensus across GRNBoost2 seeds with a shuffled control, and the last section explains why it is not NestBoot.
 
 The Aerts-lab code is the five git commits in the install module. The cisTarget rankings database is a file in the Zenodo record, not a second download.
 
@@ -44,7 +44,7 @@ To recompute the figures from the deposited runs, stop here and go to Analysis. 
 python nestboot_scenicplus.py run --n_cpu 40
 ```
 
-This does not resample cells and it does not repeat an outer loop. It writes 50 pairs under `results_full_scenicplus/`. For run `i`:
+Each run changes only the GRNBoost2 seed. Cells are not resampled. It writes 50 pairs under `results_full_scenicplus/`. For run `i`:
 
 1. Measured side, seed `42 + i`. GRNBoost2 (`scenicplus grn_inference TF_to_gene`, method GBM) scores TF–gene importance on the observed multiome, using 40 cores. The eGRN step then builds `eRegulons.tsv` from that table plus the fixed region-to-gene links, direct cistromes, and the rankings database.
 2. Shuffled side, seed `42 + i + 10000`. Each gene’s expression is permuted across cells on its own. GRNBoost2 and the eGRN step are repeated on that matrix. The shuffled MuData file is deleted after GRNBoost2. The region-to-gene table, cistromes, and rankings are the same files as the measured side.
@@ -53,22 +53,40 @@ A side that already has both `tf_to_gene.tsv` and `eRegulons.tsv` is skipped. If
 
 ## Analysis
 
-NestBoot, at one sparsity, scores each link by how often the 50 seeds infer it. Support is that fraction. Equation 1 sets the cutoff B:
-
-FDR(B) = (shuffled links with support > B) / (measured links with support > B)
-
-The cutoff is the smallest B at which this ratio is at most 0.05. The curves are not smoothed. Each point is the fraction of links at that exact support.
-
 ```bash
 python fig2_grid.py
 ```
 
-That writes the frequency curves for 3, 4, and 5 links per gene, 3, 4, and 5 links per TF, and for every TF–gene edge. Self-links are removed before the cut. `chapter_nestboot_fig2.py` is the book version of the 3-and-5 figure and the all-edges figure. The y-axis is frequency from 0 to 0.2. The one-run peak sits above that frame.
+That writes the support curves for 3, 4, and 5 links per gene, 3, 4, and 5 links per TF, and for every TF–gene edge, plus the table `results_summary/fig2_degree_and_full.tsv`. In each run, the degree cut keeps the strongest edges by GRNBoost2 importance. Self-links are removed first, because a TF predicting itself survives the shuffle. `chapter_nestboot_fig2.py` is the book version of the 3-and-5 figure and the all-edges figure.
 
-These 50 seeds are one inner loop. They are not 100 outer runs of experiment bootstraps, so a link is kept when its support exceeds B. There is no further “pass every outer run” filter.
+### Seed support
 
-### When an outer loop is present
+GRNBoost2 is deterministic for a fixed matrix and a fixed seed. Changing the seed changes the network. A link’s seed support is the fraction of the 50 seeded runs that contain it. The curves show, for each support value, the fraction of links with exactly that support. They are not smoothed. The y-axis runs from 0 to 0.2, and the one-seed peak sits above that frame.
 
-The 2019 procedure has two levels. The inner loop, Q times, resamples experiments and infers a network. Support inside one outer run is the fraction of those Q inferences that contain the link. The outer loop repeats that whole inner loop R times, with a fresh experiment-wise shuffle each time. Equation 1 is applied to the support curves, and a link is kept only when its support exceeds B in every one of the R outer runs. That second requirement is why the false-discovery rate in the paper is lower than the rate requested from Equation 1. The published case used R = 100 and Q = 1000.
+The measured networks recur far more than the shuffled ones. At 3 regulators per gene, 62% of measured links appear in at least 2 seeds, against 13% of shuffled links. Two measured runs share a Jaccard overlap of 0.30, against 0.003 for two shuffled runs. Among links in at least 40 of 50 seeds, the overlap rises to about 0.8. No shuffled link reaches 8 seeds. 924 measured links are in all 50.
 
-That arrangement needs the outer runs to exist. They do not here. The 50 GRNBoost2 seeds are one set of inferences on one matrix, so R = 1 and Q = 50. Splitting those 50 into groups, for example 5 groups of 10 or 10 groups of 5, only repartitions the same seeds. It does not create a second bootstrap. Do that split only when each outer run has its own inner inferences.
+### Cutoff from the shuffled control
+
+The cutoff is set by the shuffled runs, not by a chosen percentage. For each support B, count the shuffled links and the measured links with support above B. The cutoff is the smallest B at which
+
+shuffled links above B / measured links above B ≤ 0.05.
+
+That ratio is an empirical false-discovery rate against the shuffled control. The black line in each panel marks it.
+
+| Graph | Kept when seen in at least | Measured links | Shuffled links | Ratio |
+|---|---:|---:|---:|---:|
+| 3 TFs per gene | 4 of 50 seeds | 230,264 | 4,069 | 0.018 |
+| 5 TFs per gene | 5 of 50 seeds | 320,337 | 3,391 | 0.011 |
+| 3 targets per TF | 2 of 50 seeds | 13,775 | 683 | 0.050 |
+| 5 targets per TF | 3 of 50 seeds | 15,111 | 19 | 0.001 |
+| All edges | 22 of 50 seeds | 1,566,575 | 55,314 | 0.035 |
+
+The cutoff is low on the degree-cut graphs because a shuffled matrix almost never produces the same edge twice. The set it keeps is therefore a union across seeds, larger than any single run: 230,264 links against 87,495 edges per run at 3 regulators per gene. Report seed support with each link, so a reader can tell the links that pass the control from the core that recurs in most seeds. With every edge kept, shuffled links persist up to support 0.78, and the cutoff moves out to 22 of 50 seeds. The degree cut removes that tail.
+
+### Why this is not NestBoot
+
+NestBoot (Morgan et al., *Bioinformatics* 35:1026–1032, 2019) bootstraps independent experiments in an inner loop, repeats that inner loop in an outer loop with a fresh shuffle, and keeps a link only when it clears the Equation 1 cutoff in every outer run. It assumes the inference is fixed once the input is fixed, so all variation comes from the data. The ratio used above is the paper’s Equation 1.
+
+None of that applies to these runs. There is one multiome, so there are no experiments to resample. The measured matrix is the same in all 50 runs, and only the GRNBoost2 seed changes. The variation is the solver’s, not the sample’s, so there is one set of runs and no outer loop. Splitting the 50 seeds into groups, such as 5 groups of 10, only repartitions the same seeds. The shuffled side permutes each gene within the one dataset rather than shuffling experiments.
+
+A real NestBoot here would draw cells with replacement, keep the GRNBoost2 seed fixed, and repeat Q inner and R outer times on measured and shuffled data. One GRNBoost2 fit took about 1.5 hours on this dataset, so even R = 5 and Q = 20 is 200 fits. That was not run.

@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""NestBoot-style support, overlap, and frequency for a SCENIC+ GRNBoost2 benchmark.
+"""Seed support, overlap, and frequency for a SCENIC+ GRNBoost2 benchmark.
 
-Paste into the SCENIC+ chapter. The 50 measured runs and 50 gene-shuffled runs
-are treated as one inner bootstrap (Q = 50). There is no outer loop here, so
-the consensus is every link whose support exceeds the Equation 1 cutoff.
+Paste into the SCENIC+ chapter. The 50 measured runs differ only in the
+GRNBoost2 seed; cells are not resampled. The 50 gene-shuffled runs are the
+control. A link's support is the fraction of seeds that contain it, and the
+consensus is every measured link whose support exceeds the cutoff set by the
+shuffled runs. This is not NestBoot: there is no experiment resampling and no
+outer loop.
 
 Expected layout, one directory per run:
 
@@ -64,7 +67,7 @@ def edge_keys(df):
 
 
 # ---------------------------------------------------------------------------
-# 3. Support. For each link, the fraction of the 50 runs that contain it.
+# 3. Seed support. For each link, the fraction of the 50 runs that contain it.
 #    Returned as a dict {(TF, target): number of runs}.
 # ---------------------------------------------------------------------------
 def support_counts(side, degree, kind):
@@ -77,10 +80,11 @@ def support_counts(side, degree, kind):
 
 
 # ---------------------------------------------------------------------------
-# 4. Equation 1. FDR(B) is the number of shuffled links with support > B
-#    divided by the number of measured links with support > B.
+# 4. Cutoff from the shuffled control (Equation 1 of Morgan et al. 2019).
+#    FDR(B) is the number of shuffled links with support > B divided by the
+#    number of measured links with support > B.
 #    The cutoff is the smallest B at which that ratio is at most 0.05.
-#    With Q = 50, support > k/50 means the link is in at least k + 1 runs.
+#    Support > k/50 means the link is in at least k + 1 runs.
 # ---------------------------------------------------------------------------
 def equation1(measured, shuffled):
     rows = []
@@ -140,7 +144,7 @@ def run_sets(side, degree, kind):
 #    whose support is exactly that multiple of 1/50. Nothing is smoothed.
 #    The line only joins those 50 points. The y-axis runs from 0 to 0.2.
 #    The one-run peak sits above that frame. The black line is the
-#    Equation 1 cutoff.
+#    cutoff from step 4.
 # ---------------------------------------------------------------------------
 def draw(ax, title, measured_counts, shuffled_counts, measured_sets, shuffled_sets):
     _, cutoff = equation1(measured_counts, shuffled_counts)

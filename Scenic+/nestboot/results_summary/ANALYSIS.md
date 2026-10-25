@@ -1,31 +1,32 @@
-# NestBoot on the SCENIC+ runs
+# Seed consensus on the SCENIC+ runs
 
-This note follows Morgan et al., Bioinformatics 35:1026–1032 (2019). NestBoot, at one sparsity, is:
+GRNBoost2, the TF-to-gene step of SCENIC+, returns the same network for a fixed expression matrix and a fixed seed, and a different network when the seed changes. These 50 measured runs use one multiome and seeds `42 + run`. Nothing else changes: cells are not resampled, and region-to-gene links, cistromes, and the ranking database are fixed. The 50 shuffled runs permute each gene’s expression across cells before GRNBoost2, with seeds `42 + run + 10000`. They are the control.
 
-1. Infer the network Q times on bootstrap resamples of the measured data, and Q times on an experiment-wise shuffle.
-2. A link’s support is the fraction of the Q inferences that contain it.
-3. Equation 1 picks the smallest support cutoff B such that
+A link’s **seed support** is the fraction of the 50 runs that contain it. A link that the data supports should come back under most seeds. A link that only reflects one random draw of the solver should not.
+
+## Self-links and sparsity
+
+Self-links are removed first. GRNBoost2 ranks a TF predicting itself first in every run, measured and shuffled, because the two expression columns are the same vector, and the gene shuffle does not break that edge. Those 700 edges are not regulatory links. They were the spike at support 1.0 in earlier weight-ranked plots.
+
+Each run is then cut to a few links per node by GRNBoost2 importance. Two directed readings are reported: the 3 strongest regulators of each gene (87,495 edges per run) and the 3 strongest targets of each TF (2,100 edges per run). Degrees 4 and 5 and the uncut table are in the last section.
+
+## The measured networks recur; the shuffled ones do not
+
+At 3 regulators per gene, two measured runs share a Jaccard overlap of 0.30 before any cutoff. Two shuffled runs share 0.003. 62% of measured links appear in at least 2 seeds, against 13% of shuffled links. Restricting to links that recur raises the measured overlap: 0.58 for links in at least half the seeds, 0.80 for links in at least 40 of 50. No shuffled link appears in 8 or more seeds. 924 measured links are in all 50.
+
+At 3 targets per TF the measured runs agree less (overlap 0.13, against 0.0001 for the shuffle), and the same pattern holds: half of the measured links appear in at least 2 seeds, against under 1% of shuffled links. Overlap is 0.50 at support 0.5 and 0.79 at support 0.8. Six links are in all 50 seeds. The top targets of a TF move a lot between seeds, but far less than chance.
+
+## Cutoff from the shuffled control
+
+The cutoff is set by the shuffled runs, not by a chosen percentage of seeds. For a support value B,
 
 FDR(B) = (shuffled links with support > B) / (measured links with support > B)
 
-is at most 0.05.
-4. The consensus is every link with support greater than B. If this inner loop is itself repeated for R outer runs, a link must clear B in every outer run. That extra rule is why the FDR in the paper’s Figure 6 is lower than the rate requested in Equation 1.
+and the cutoff is the smallest B at which this is at most 0.05. This is Equation 1 of Morgan et al. (2019), used here as an empirical false-discovery rate against the shuffled control.
 
-## What these 50 runs are
+### 3 regulators per gene
 
-Each run is one GRNBoost2 seed on a fixed multiome, not a resample of experiments. The null shuffles each gene’s expression across cells on its own, rather than shuffling whole experiments. Region-to-gene links, cistromes, and the ranking database are held fixed. Seeds are `42 + run` for the measured data and `42 + run + 10000` for the shuffle.
-
-Read as NestBoot, this is **one outer run (R = 1) with Q = 50 inner inferences**. There is no second loop, so step 4 stops at “support greater than B.” The FDR is the Equation 1 value, not the more conservative rate that comes from demanding the same cutoff in 100 outer runs.
-
-The paper aims for about 3 links per node. Self-links are removed before that cut. GRNBoost2 ranks a TF predicting itself first in every run, measured and shuffled, because the two expression columns are the same vector. The gene shuffle does not break that edge. Those 700 edges are not regulatory links, and they were the spike at support 50 in the earlier weight-ranked plots.
-
-Two directed readings of “3 links per node” are reported. Both use the top 3 edges by GRNBoost2 importance inside each run.
-
-## 3 regulators per gene
-
-Each gene keeps its 3 strongest TFs. That is 87,495 edges in every run.
-
-Equation 1 first falls to 0.05 at **B = 0.06**, which means the link is present in **at least 4 of 50** seeds.
+The ratio first falls to 0.05 at **B = 0.06**: the link is present in **at least 4 of 50** seeds.
 
 | Support greater than | Measured links | Shuffled links | FDR |
 |---:|---:|---:|---:|
@@ -38,19 +39,9 @@ Equation 1 first falls to 0.05 at **B = 0.06**, which means the link is present 
 | 40/50 | 19,494 | 0 | 0 |
 | 50/50 | 924 | 0 | 0 |
 
-The consensus at FDR 5% is those 230,264 measured links. It is a large union across seeds, not the 87,495 edges of any single run. Past support 7/50 the shuffle contributes nothing. 924 links are in every seed.
+### 3 targets per TF
 
-### Link frequency and Equation 1
-
-![NestBoot at 3 links per node](plots/nestboot_eq1_degree3.png)
-
-Blue is 3 regulators per gene. Orange is 3 targets per TF. Solid lines are measured, dashed lines are shuffled. The left panel is the number of links at each support, on a log scale, which is the frequency curve in the paper’s Figure 2. The right panel is Equation 1. The dotted horizontal line is FDR 0.05. A point marks the first B at which each curve is at or below that line. Shuffled links no longer pile up at support 1.0, because the self-links that produced that spike have been removed.
-
-## 3 targets per TF
-
-Each TF keeps its 3 strongest targets after the self-link is dropped. That is 2,100 edges in every run. This is the much sparser reading of the same phrase.
-
-Equation 1 first falls to 0.05 at **B = 0.02**: the link is present in **at least 2 of 50** seeds.
+The ratio first falls to 0.05 at **B = 0.02**: the link is present in **at least 2 of 50** seeds.
 
 | Support greater than | Measured links | Shuffled links | FDR |
 |---:|---:|---:|---:|
@@ -61,29 +52,17 @@ Equation 1 first falls to 0.05 at **B = 0.02**: the link is present in **at leas
 | 40/50 | 80 | 0 | 0 |
 | 50/50 | 6 | 0 | 0 |
 
-Seen twice is enough. One step further, support greater than 3/50, the shuffled count is already zero and 7,319 measured links remain. Only 6 of those links are in every seed. The top targets of a TF are not a stable network across GRNBoost2 seeds. They are stable enough that the shuffle does not reproduce them once the self-link is gone.
+The cutoff is low because a shuffled matrix almost never produces the same edge twice. The set it keeps is a union across seeds, larger than any one run: 230,264 links against 87,495 per run at 3 regulators per gene, and 13,775 against 2,100 at 3 targets per TF. Report seed support with every link. Then a reader can separate the links that only pass the control from the core that recurs in most seeds.
 
-## Figure 2: frequency and overlap
-
-![Bootstrap support by overlap and frequency](plots/fig2_support_frequency_overlap.png)
-
-Same two graphs as above. The two degree-3 cuts are one edge set here. In each run a link is kept if it is one of the gene’s 3 strongest TFs or one of the TF’s 3 strongest other targets. That adds only about 15 edges to the 87,495-edge gene graph, because nearly every top target of a TF is already among that gene’s top 3 regulators. The x-axis is support. The left axis is overlap, fixed at 0–1 (dashed). The right axis is frequency, zoomed to 0–0.02 (solid). Blue is measured, red is shuffled. The black line is the Equation 1 cutoff, support 0.06.
-
-At 3 regulators per gene the runs already agree more than the shuffle before any cutoff: overlap 0.30 versus 0.003. Raising the cutoff lifts the measured overlap and wipes out the shuffled one. Overlap is 0.58 at support 0.5 and 0.80 at support 0.8. It reaches 1 only at support 1, where every remaining link is in every run, so the 50 restricted networks are identical. Shuffled overlap is 0 from support 0.2 upward, because no shuffled link is in 10 or more runs.
-
-At 3 targets per TF the measured networks agree less to begin with (overlap 0.13, against 0.0001 for the shuffle). The same pattern holds, just lower: overlap 0.50 at support 0.5 and 0.79 at support 0.8. Shuffled overlap is already 0 at support 0.08. The frequency curves explain why Equation 1 can sit at a low cutoff: almost all shuffled links are in one run (99% of them at 3 targets per TF; 87% at 3 regulators per gene), while the measured links are spread toward higher support.
-
-The curves are in `fig2_support_frequency_overlap.tsv`.
-
-### 3–5 links per node, and every edge
+## 3–5 links per node, and every edge
 
 ![3 and 5 links per node](plots/fig2_degree_3_and_5.png)
 
 ![All TF–gene edges](plots/fig2_all_edges.png)
 
-The 2×2 is degrees 3 and 5 only. The top row is regulators per gene. The bottom row is targets per TF. The second figure is every TF–gene edge GRNBoost2 wrote, with no degree cut. Both show link frequency only. Blue is measured, red is shuffled, and the black line is that panel’s Equation 1 cutoff. The y-axis runs from 0 to 0.2. The one-run peak sits above that frame. Each point is the raw fraction of links at that support (1/50, 2/50, …). The curves are not smoothed. The line only joins those points. Self-links are removed. The values are in `fig2_degree_and_full.tsv`.
+The 2×2 is degrees 3 and 5. The top row is regulators per gene, the bottom row targets per TF. The second figure is every TF–gene edge GRNBoost2 wrote, with no degree cut. The x-axis is seed support. Each point is the raw fraction of links at that support (1/50, 2/50, …). The curves are not smoothed; the line only joins those points. The y-axis runs from 0 to 0.2, and the one-seed peak sits above that frame. Blue is measured, red is shuffled, and the black line is that panel’s cutoff. `fig2_grid.py` writes the values to `fig2_degree_and_full.tsv`.
 
-| Graph | Edges scale | Cutoff | Measured links above it | Shuffled links above it | FDR | Shuffled frequency is 0 from |
+| Graph | Edges per run | Cutoff B | Measured links above it | Shuffled links above it | FDR | Shuffled frequency is 0 from |
 |---|---:|---:|---:|---:|---:|---:|
 | 3 TFs per gene | 87,495 | 0.06 | 230,264 | 4,069 | 0.018 | 0.16 |
 | 4 TFs per gene | 116,660 | 0.06 | 296,611 | 11,917 | 0.040 | 0.16 |
@@ -93,12 +72,14 @@ The 2×2 is degrees 3 and 5 only. The top row is regulators per gene. The bottom
 | 5 targets per TF | 3,500 | 0.04 | 15,111 | 19 | 0.001 | 0.08 |
 | All edges | ~2.4 million | 0.42 | 1,566,575 | 55,314 | 0.035 | 0.78 |
 
-On the degree-limited panels the red frequency line only passes through the 0–0.02 window for a short stretch, then sits on zero. Measured overlap at support 0.5 is about 0.50–0.62, and shuffled overlap there is 0. The unthresholded table is the one where the shuffled tail stays inside the window: shuffled frequency is still positive until support 0.78, and shuffled overlap at support 0.5 is still 0.35 against 0.67 for the measured runs. Keeping every edge is what lets null links recur. Cutting to a few links per node removes that tail.
+On the degree-cut panels the shuffled frequency drops to zero by support 0.08–0.18, while the measured curve continues to 1.0. The uncut table is the one where shuffled links still recur: shuffled frequency stays positive until support 0.78, and the cutoff moves out to 22 of 50 seeds. Keeping every edge is what lets shuffled links recur. Cutting to a few links per node removes that tail.
 
-## What this is not
+## Why this is not NestBoot
 
-Earlier tables also swept GRNBoost2 rank cutoffs and split the 50 seeds into groups (`sparsity_fdr.tsv`, `inner_bootstrap_fdr.tsv`). The NestBoot result for this chapter is Equation 1 on the degree cuts and on all edges, in the figures above.
+NestBoot (Morgan et al., *Bioinformatics* 35:1026–1032, 2019) estimates support from bootstrap resamples of independent experiments. It repeats that inner loop in an outer loop with a fresh experiment-wise shuffle, and keeps a link only when it clears the Equation 1 cutoff in every outer run. That last rule is why the FDR in the paper’s Figure 6 is lower than the rate Equation 1 asks for. The method assumes the inference is fixed once the input is fixed, so all variation comes from the data.
 
-In particular, “seen in at least 2 of 50 eRegulon runs” is Equation 1 applied to SCENIC+’s own triplet filter, which keeps about 19,000 TF–gene links per run rather than 3 links per node. And splitting the 50 seeds into 5×10 or 10×5 does not create the paper’s outer loop. An outer run would resample the experiments, re-shuffle experiment-wise, and repeat the inner Q inferences. That was not done.
+These runs do not meet those assumptions. There is one multiome, so there are no experiments to resample. The measured matrix is the same in all 50 runs, and only the GRNBoost2 seed changes, so the support measures the solver’s variation, not the sample’s. There is one set of runs and no outer loop. Earlier tables split the 50 seeds into 5 groups of 10 or 10 groups of 5 (`inner_bootstrap_fdr.tsv`). That only repartitions the same seeds. The shuffle permutes each gene within the one dataset rather than shuffling experiments.
 
-The full curves are `eq1_3per_gene.tsv` and `eq1_3per_tf.tsv`.
+A NestBoot on this dataset would draw cells with replacement, keep the GRNBoost2 seed fixed, and repeat Q inner and R outer times on measured and shuffled data. One GRNBoost2 fit took about 1.5 hours here, so even R = 5 and Q = 20 means 200 fits. That was not run.
+
+Other tables on disk answer different questions and are not part of this result: a sweep of GRNBoost2 rank cutoffs (`sparsity_fdr.tsv`), the eRegulon-table support (`scenicplus_support_fdr.txt`), and a per-link paired test (`tf_gene_nestboot.tsv`).

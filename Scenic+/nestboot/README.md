@@ -1,8 +1,8 @@
-# NestBoot SCENIC+
+# Seed consensus for SCENIC+
 
 The book-chapter order is [CHAPTER.md](CHAPTER.md): install, load data, run, analysis.
 
-Fifty paired bootstraps of enhancer-driven gene regulatory networks. Each pair reruns the stochastic GRNBoost2 TF-to-gene step and rebuilds eRegulons. The region-to-gene table is held fixed. The null shuffles expression independently within each gene before GRNBoost2.
+Fifty paired runs of enhancer-driven gene regulatory networks. Each pair reruns the stochastic GRNBoost2 TF-to-gene step at a new seed and rebuilds eRegulons. Cells are not resampled, and the region-to-gene table is held fixed. The shuffled control permutes expression independently within each gene before GRNBoost2. Folder and file names say "nestboot" from the original plan. CHAPTER.md explains why the analysis is a seed consensus rather than NestBoot.
 
 The published numbers were produced with scenicplus 1.0a2 at commit `840dab85de3044846234c157e327b6ea0290abfb`. An earlier, unpinned eGRN pass wrote null networks one to two orders of magnitude smaller from the same TF-to-gene tables. Those files are `eRegulons.legacy.tsv` and are not used.
 
@@ -62,15 +62,15 @@ These scripts read the finished `tf_to_gene.tsv` tables. They do not rerun GRNBo
 | `plot_nestboot.py` | eRegulon figures, including Equation 1 on TF–gene presence |
 | `sparsity_fdr.py` | Equation 1 at 30 importance cutoffs |
 | `raw_degree_fdr.py` | support tables for all edges and for 3–5 links per node, before dropping self-links |
-| `inner_bootstrap.py` | 5×10 and 10×5 splits of the eRegulon links |
-| `fig2_grid.py` | Figure 2 curves for 3–5 links per gene, 3–5 links per TF, and all edges, with self-links removed |
+| `inner_bootstrap.py` | 5×10 and 10×5 groupings of the 50 seeds on the eRegulon links (a repartition of the same seeds, not a bootstrap) |
+| `fig2_grid.py` | seed-support curves for 3–5 links per gene, 3–5 links per TF, and all edges, with self-links removed |
 | `chapter_nestboot_fig2.py` | the same final figures, written to be read section by section |
 
 `chapter_nestboot_fig2.py` writes `fig2_degree_3_and_5.png` and `fig2_all_edges.png`. Copies of those figures are in `results_summary/plots/`. The write-up is `results_summary/ANALYSIS.md`.
 
 ## What the analysis is
 
-A link’s support is the fraction of the 50 seeds that contain it. Equation 1 is the number of shuffled links with support above B, divided by the number of measured links with support above B. The cutoff is the smallest B at which that ratio is at most 0.05. `fig2_grid.py` computes this at 3–5 links per node and for every TF–gene edge, after dropping self-links. The write-up is `results_summary/ANALYSIS.md`.
+A link’s seed support is the fraction of the 50 seeded runs that contain it. The cutoff comes from the shuffled control: the smallest support B at which the number of shuffled links above B, divided by the number of measured links above B, is at most 0.05. `fig2_grid.py` computes this at 3–5 links per node and for every TF–gene edge, after dropping self-links. The write-up is `results_summary/ANALYSIS.md`.
 
 ## What is reproducible
 
