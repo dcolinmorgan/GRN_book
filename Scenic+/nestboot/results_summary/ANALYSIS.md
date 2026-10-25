@@ -28,29 +28,29 @@ and the cutoff is the smallest B at which this is at most 0.05. This is Equation
 
 The ratio first falls to 0.05 at **B = 0.06**: the link is present in **at least 4 of 50** seeds.
 
-| Support greater than | Measured links | Shuffled links | FDR |
+| Seen in at least | Measured links | Shuffled links | FDR |
 |---:|---:|---:|---:|
-| 0 (seen at least once) | 551,565 | 3,828,642 | 6.94 |
-| 2/50 | 270,227 | 48,828 | 0.181 |
-| **3/50 (the cutoff)** | **230,264** | **4,069** | **0.018** |
-| 4/50 | 203,680 | 288 | 0.0014 |
-| 6/50 | 168,861 | 1 | 6×10⁻⁶ |
-| 7/50 | 156,133 | 0 | 0 |
-| 40/50 | 19,494 | 0 | 0 |
-| 50/50 | 924 | 0 | 0 |
+| 1 of 50 seeds | 551,565 | 3,828,642 | 6.94 |
+| 3 | 270,227 | 48,828 | 0.181 |
+| **4 (the cutoff)** | **230,264** | **4,069** | **0.018** |
+| 5 | 203,680 | 288 | 0.0014 |
+| 7 | 168,861 | 1 | 6×10⁻⁶ |
+| 8 | 156,133 | 0 | 0 |
+| 40 | 19,494 | 0 | 0 |
+| 50 | 924 | 0 | 0 |
 
 ### 3 targets per TF
 
 The ratio first falls to 0.05 at **B = 0.02**: the link is present in **at least 2 of 50** seeds.
 
-| Support greater than | Measured links | Shuffled links | FDR |
+| Seen in at least | Measured links | Shuffled links | FDR |
 |---:|---:|---:|---:|
-| 0 (seen at least once) | 27,570 | 104,309 | 3.78 |
-| **1/50 (the cutoff)** | **13,775** | **683** | **0.050** |
-| 2/50 | 9,525 | 8 | 0.0008 |
-| 3/50 | 7,319 | 0 | 0 |
-| 40/50 | 80 | 0 | 0 |
-| 50/50 | 6 | 0 | 0 |
+| 1 of 50 seeds | 27,570 | 104,309 | 3.78 |
+| **2 (the cutoff)** | **13,775** | **683** | **0.050** |
+| 3 | 9,525 | 8 | 0.0008 |
+| 4 | 7,319 | 0 | 0 |
+| 40 | 80 | 0 | 0 |
+| 50 | 6 | 0 | 0 |
 
 The cutoff is low because a shuffled matrix almost never produces the same edge twice. The set it keeps is a union across seeds, larger than any one run: 230,264 links against 87,495 per run at 3 regulators per gene, and 13,775 against 2,100 at 3 targets per TF. Report seed support with every link. Then a reader can separate the links that only pass the control from the core that recurs in most seeds.
 
